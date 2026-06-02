@@ -1,0 +1,1358 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Олимп — Прогресия на плувците</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0e1117;--surf:#161b27;--surf2:#1e2536;--surf3:#252d3d;
+  --border:#2a3348;--border2:#344060;
+  --text:#e8ecf4;--text2:#8b95aa;--text3:#55607a;
+  --blue:#4f8ef7;--blue-l:rgba(79,142,247,.12);
+  --green:#34d399;--green-l:rgba(52,211,153,.12);
+  --amber:#fbbf24;--amber-l:rgba(251,191,36,.12);
+  --red:#f87171;--red-l:rgba(248,113,113,.12);
+  --purple:#a78bfa;--purple-l:rgba(167,139,250,.12);
+  --teal:#2dd4bf;
+  --r:8px;--rl:12px;--rxl:18px;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;min-height:100vh}
+.shell{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+.sidebar{background:var(--surf);border-right:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow:hidden}
+.main{padding:28px;overflow:auto}
+.sb-head{padding:22px 20px 18px;border-bottom:1px solid var(--border)}
+.sb-logo{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.sb-mark{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--blue),var(--purple));display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:600;color:#fff;flex-shrink:0}
+.sb-title{font-size:15px;font-weight:600;color:var(--text)}
+.sb-sub{font-size:11px;color:var(--text3);margin-top:1px}
+.sb-upload{margin:0 12px;background:var(--surf2);border:1.5px dashed var(--border2);border-radius:var(--rl);padding:14px 12px;text-align:center;cursor:pointer;transition:.2s}
+.sb-upload:hover,.sb-upload.over{border-color:var(--blue);background:var(--blue-l)}
+.sb-upload-icon{font-size:20px;margin-bottom:6px}
+.sb-upload-t{font-size:12px;font-weight:500;color:var(--text2)}
+.sb-upload-s{font-size:11px;color:var(--text3);margin-top:2px}
+.sb-upload input{display:none}
+.meets-list{flex:1;overflow-y:auto;padding:12px 12px 0}
+.meets-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);padding:0 4px;margin-bottom:6px}
+.meet-item{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:var(--r);margin-bottom:3px;cursor:default;transition:.12s;border:1px solid transparent}
+.meet-item:hover{background:var(--surf3)}
+.meet-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.meet-info{flex:1;min-width:0}
+.meet-name{font-size:12px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.meet-meta{font-size:10px;color:var(--text3);margin-top:1px}
+.meet-del{width:20px;height:20px;border-radius:5px;background:none;border:none;color:var(--text3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;opacity:0;transition:.12s;flex-shrink:0}
+.meet-item:hover .meet-del{opacity:1}
+.meet-del:hover{background:var(--red-l);color:var(--red)}
+.sb-stats{padding:12px;border-top:1px solid var(--border);display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.sb-stat{background:var(--surf2);border-radius:var(--r);padding:8px 10px}
+.sb-stat-v{font-size:18px;font-weight:600;font-family:'DM Mono',monospace;color:var(--text)}
+.sb-stat-l{font-size:10px;color:var(--text3);margin-top:1px}
+.sb-nav{padding:8px 12px;border-bottom:1px solid var(--border)}
+.nb{display:flex;align-items:center;gap:8px;width:100%;padding:8px 10px;border-radius:var(--r);font-size:13px;color:var(--text2);background:none;border:none;cursor:pointer;text-align:left;transition:.12s;font-family:inherit}
+.nb:hover{background:var(--surf3);color:var(--text)}
+.nb.on{background:var(--blue-l);color:var(--blue);font-weight:500}
+.nb svg{width:15px;height:15px;flex-shrink:0}
+.pg{display:none}.pg.on{display:block}
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 20px;text-align:center;gap:16px}
+.empty-icon{font-size:48px;opacity:.3}
+.empty-title{font-size:18px;font-weight:500;color:var(--text2)}
+.empty-sub{font-size:13px;color:var(--text3);max-width:320px}
+.ph{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;gap:16px;flex-wrap:wrap}
+.ph-left h1{font-size:22px;font-weight:600;letter-spacing:-.4px}
+.ph-left p{font-size:13px;color:var(--text2);margin-top:3px}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;align-items:center}
+input[type=search],input[type=text],input[type=number],input[type=date],select{padding:8px 11px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--surf2);color:var(--text);outline:none;font-family:inherit}
+input:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(79,142,247,.15)}
+select option{background:var(--surf2)}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:24px}
+.mc{background:var(--surf);border:1px solid var(--border);border-radius:var(--rl);padding:16px}
+.mc-l{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;font-weight:600}
+.mc-v{font-size:28px;font-weight:600;font-family:'DM Mono',monospace;color:var(--text);line-height:1}
+.mc-s{font-size:11px;color:var(--text2);margin-top:4px}
+.mc.hi{border-color:var(--green);background:var(--green-l)}
+.mc.hi .mc-v{color:var(--green)}
+.sw-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.sw-card{background:var(--surf);border:1px solid var(--border);border-radius:var(--rxl);overflow:hidden;cursor:pointer;transition:.18s}
+.sw-card:hover{border-color:var(--blue);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.3)}
+.sw-card-head{padding:16px;display:flex;align-items:center;gap:12px}
+.av{border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;flex-shrink:0}
+.sw-card-name{font-size:14px;font-weight:600;color:var(--text)}
+.sw-card-meta{font-size:11px;color:var(--text3);margin-top:2px}
+.sw-card-body{padding:0 16px 16px}
+.ev-pills{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}
+.ev-pill{font-size:10px;font-weight:500;padding:3px 8px;border-radius:20px;border:1px solid var(--border2);color:var(--text2)}
+.ev-pill.improved{border-color:var(--green);color:var(--green);background:var(--green-l)}
+.ev-pill.worse{border-color:var(--red);color:var(--red);background:var(--red-l)}
+.ev-pill.single{border-color:var(--border2);color:var(--text3)}
+.sw-prog-bar{height:4px;background:var(--surf3);border-radius:2px;overflow:hidden;margin-top:8px}
+.sw-prog-fill{height:100%;border-radius:2px;transition:width .4s}
+.detail-back{display:inline-flex;align-items:center;gap:6px;color:var(--blue);background:none;border:none;cursor:pointer;font-size:13px;margin-bottom:20px;font-family:inherit;padding:0}
+.detail-back:hover{text-decoration:underline}
+.detail-header{background:var(--surf);border:1px solid var(--border);border-radius:var(--rxl);padding:22px;margin-bottom:16px;display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.detail-name{font-size:22px;font-weight:600;letter-spacing:-.3px}
+.detail-meta{font-size:12px;color:var(--text2);margin-top:5px}
+.tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.tag{font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px}
+.tag-blue{background:var(--blue-l);color:var(--blue)}
+.tag-green{background:var(--green-l);color:var(--green)}
+.tag-amber{background:var(--amber-l);color:var(--amber)}
+.tag-purple{background:var(--purple-l);color:var(--purple)}
+.tag-gray{background:var(--surf3);color:var(--text2)}
+.ev-sections{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+.ev-section{background:var(--surf);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden}
+.ev-section-head{padding:14px 16px 0;display:flex;align-items:center;justify-content:space-between}
+.ev-section-name{font-size:13px;font-weight:600;color:var(--text)}
+.ev-prog-badge{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px}
+.ev-prog-badge.imp{background:var(--green-l);color:var(--green)}
+.ev-prog-badge.reg{background:var(--red-l);color:var(--red)}
+.ev-prog-badge.one{background:var(--surf3);color:var(--text3)}
+.ev-section-body{padding:12px 16px 16px}
+.chart-wrap{position:relative;width:100%;height:160px}
+.results-mini{margin-top:10px}
+.res-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px}
+.res-row:last-child{border-bottom:none}
+.res-meet{color:var(--text3);font-size:11px;max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.res-time{font-family:'DM Mono',monospace;font-weight:500;color:var(--text)}
+.res-delta{font-size:11px;font-weight:600}
+.res-delta.pos{color:var(--green)}
+.res-delta.neg{color:var(--red)}
+.res-pts{font-size:11px;color:var(--text3)}
+.event-block{background:var(--surf);border:1px solid var(--border);border-radius:var(--rl);margin-bottom:10px;overflow:hidden}
+.event-block-head{padding:12px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
+.event-block-head:hover{background:var(--surf2)}
+.event-block-title{font-size:13px;font-weight:600}
+.event-block-body{padding:0 16px 14px;display:none}
+.event-block.open .event-block-body{display:block}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;padding:7px 10px;text-align:left;border-bottom:1px solid var(--border);background:var(--surf2)}
+td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr.clickable:hover td{background:var(--surf2);cursor:pointer}
+.mono{font-family:'DM Mono',monospace;font-weight:500}
+.filter-pills{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:14px}
+.fp{font-size:11px;font-weight:500;padding:4px 11px;border-radius:20px;border:1px solid var(--border2);color:var(--text2);background:none;cursor:pointer;transition:.12s;font-family:inherit}
+.fp:hover{background:var(--surf3)}
+.fp.on{background:var(--blue-l);color:var(--blue);border-color:var(--blue)}
+.notice{background:var(--surf2);border:1px solid var(--border);border-radius:var(--r);padding:10px 14px;font-size:12px;color:var(--text2);margin-bottom:14px}
+.notice b{color:var(--text)}
+.age-picker{position:relative;display:inline-block}
+.age-picker-btn{padding:8px 11px;border:1px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--surf2);color:var(--text);cursor:pointer;white-space:nowrap;min-width:140px;display:flex;align-items:center;justify-content:space-between;gap:8px;font-family:inherit}
+.age-picker-btn:hover{border-color:var(--blue)}
+.age-picker-btn.active{border-color:var(--blue);box-shadow:0 0 0 3px rgba(79,142,247,.15)}
+.age-picker-dropdown{position:absolute;top:calc(100% + 4px);left:0;background:var(--surf2);border:1px solid var(--border2);border-radius:var(--rl);padding:6px;z-index:999;min-width:170px;box-shadow:0 8px 24px rgba(0,0,0,.4);display:none;max-height:260px;overflow-y:auto}
+.age-picker-dropdown.open{display:block}
+.age-picker-opt{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:var(--r);cursor:pointer;font-size:13px;color:var(--text);transition:.1s;user-select:none}
+.age-picker-opt:hover{background:var(--surf3)}
+.age-picker-opt input[type=checkbox]{width:14px;height:14px;accent-color:var(--blue);cursor:pointer;flex-shrink:0}
+.age-picker-clear{width:100%;padding:5px 8px;font-size:11px;color:var(--text3);background:none;border:none;border-top:1px solid var(--border);cursor:pointer;text-align:left;font-family:inherit;margin-top:4px}
+.age-picker-clear:hover{color:var(--blue)}
+.scroll-area{overflow-y:auto;flex:1}
+.pulse{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.pulse.green{background:var(--green);box-shadow:0 0 6px var(--green)}
+.pulse.red{background:var(--red);box-shadow:0 0 6px var(--red)}
+.pulse.gray{background:var(--text3)}
+/* Card for manual page */
+.card{background:var(--surf);border:1px solid var(--border);border-radius:var(--rl)}
+.card-title{font-size:13px;font-weight:600;color:var(--text)}
+.form-label{font-size:11px;color:var(--text3);margin-bottom:4px}
+.btn-primary{padding:9px 16px;border-radius:var(--r);background:var(--blue);color:#fff;border:none;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;transition:.15s}
+.btn-primary:hover{background:var(--blue-d,#2563eb)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+/* Loading overlay */
+#loading-overlay{position:fixed;inset:0;background:rgba(14,17,23,.85);display:flex;align-items:center;justify-content:center;z-index:9999;flex-direction:column;gap:14px}
+.spinner{width:36px;height:36px;border:3px solid var(--border2);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:13px;color:var(--text2)}
+</style>
+</head>
+<body>
+
+<div id="loading-overlay">
+  <div class="spinner"></div>
+  <div class="loading-text">Зарежда се от базата данни…</div>
+</div>
+
+<div class="shell">
+<aside class="sidebar">
+  <div class="sb-head">
+    <div class="sb-logo">
+      <div class="sb-mark">ОЛ</div>
+      <div>
+        <div class="sb-title">Олимп</div>
+        <div class="sb-sub">Прогресия на плувците</div>
+      </div>
+    </div>
+    <label class="sb-upload" id="dropzone"
+      ondragover="event.preventDefault();this.classList.add('over')"
+      ondragleave="this.classList.remove('over')"
+      ondrop="handleDrop(event)">
+      <div class="sb-upload-icon">📁</div>
+      <div class="sb-upload-t">Добави LXF файл</div>
+      <div class="sb-upload-s">или провлачи тук</div>
+      <input type="file" id="file-input" accept=".lxf,.lef,.zip" multiple onchange="handleFiles(this.files)">
+    </label>
+  </div>
+
+  <div class="sb-nav">
+    <button class="nb on" onclick="go('progress')">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Прогресия
+    </button>
+    <button class="nb" onclick="go('swimmers')">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+      Плувци
+    </button>
+    <button class="nb" onclick="go('events')">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="18 20 18 10"/><polyline points="12 20 12 4"/><polyline points="6 20 6 14"/></svg>
+      По дисциплина
+    </button>
+    <button class="nb" onclick="go('manual')">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+      Ръчно въвеждане
+    </button>
+  </div>
+
+  <div class="scroll-area meets-list" id="meets-list">
+    <div class="meets-lbl">Заредени файлове</div>
+    <div id="meets-items"><div style="font-size:12px;color:var(--text3);padding:8px 4px">Все още няма качени файлове</div></div>
+  </div>
+
+  <div class="sb-stats">
+    <div class="sb-stat"><div class="sb-stat-v" id="sb-sw">0</div><div class="sb-stat-l">плувци</div></div>
+    <div class="sb-stat"><div class="sb-stat-v" id="sb-res">0</div><div class="sb-stat-l">резултата</div></div>
+    <div class="sb-stat"><div class="sb-stat-v" id="sb-meets">0</div><div class="sb-stat-l">файла</div></div>
+    <div class="sb-stat"><div class="sb-stat-v" id="sb-imp">0</div><div class="sb-stat-l">подобрения</div></div>
+  </div>
+</aside>
+
+<main class="main">
+
+  <!-- PROGRESS PAGE -->
+  <div id="pg-progress" class="pg on">
+    <div id="progress-list">
+      <div class="ph">
+        <div class="ph-left"><h1>Прогресия на плувците</h1><p id="prog-sub">Зарежда се…</p></div>
+      </div>
+      <div id="prog-metrics" class="metrics" style="display:none"></div>
+      <div class="toolbar" id="prog-toolbar" style="display:none">
+        <input type="search" id="prog-search" placeholder="Търси плувец…" oninput="renderProgress()" style="width:160px">
+        <select id="prog-gender" onchange="renderProgress()">
+          <option value="">М + Ж</option><option value="M">Момчета</option><option value="F">Момичета</option>
+        </select>
+        <div class="age-picker" id="age-picker-prog">
+          <button class="age-picker-btn" id="age-picker-prog-btn" onclick="toggleAgePicker('prog',event)">
+            <span id="age-picker-prog-label">Всички възрасти</span>
+            <span style="font-size:10px;opacity:.5">▾</span>
+          </button>
+          <div class="age-picker-dropdown" id="age-picker-prog-dd"></div>
+        </div>
+        <select id="prog-year" onchange="renderProgress()"><option value="">Всички годишници</option></select>
+        <select id="prog-event" onchange="renderProgress()"><option value="">Всички дисциплини</option></select>
+        <select id="prog-sort" onchange="renderProgress()">
+          <option value="improved">По подобрения ↓</option>
+          <option value="pts_desc">По макс. точки ↓</option>
+          <option value="pts_asc">По макс. точки ↑</option>
+          <option value="name">По име А-Я</option>
+          <option value="year_asc">По година ↑</option>
+          <option value="year_desc">По година ↓</option>
+        </select>
+      </div>
+      <div class="filter-pills" id="prog-pills" style="display:none">
+        <button class="fp on" onclick="setFilter('all',this)">Всички</button>
+        <button class="fp" onclick="setFilter('improved',this)">С подобрение</button>
+        <button class="fp" onclick="setFilter('multiple',this)">Много резултата</button>
+      </div>
+      <div id="prog-content">
+        <div class="empty-state">
+          <div class="empty-icon">🏊</div>
+          <div class="empty-title">Няма заредени данни</div>
+          <div class="empty-sub">Качи LXF файл или добави плувци ръчно</div>
+        </div>
+      </div>
+    </div>
+    <div id="progress-detail" style="display:none">
+      <button class="detail-back" onclick="showProgressList()">← Назад към всички плувци</button>
+      <div id="swimmer-detail-content"></div>
+    </div>
+  </div>
+
+  <!-- SWIMMERS PAGE -->
+  <div id="pg-swimmers" class="pg">
+    <div class="ph">
+      <div class="ph-left"><h1>Всички плувци</h1><p id="sw-sub">НСК Олимп</p></div>
+      <button class="fp" id="show-hidden-btn" onclick="toggleShowHidden()" style="font-size:12px;padding:6px 12px;border-radius:var(--r)">Покажи скритите</button>
+    </div>
+    <div class="toolbar">
+      <input type="search" id="sw-search" placeholder="Търси…" oninput="renderSwimmers()" style="width:180px">
+      <select id="sw-gender" onchange="renderSwimmers()"><option value="">М + Ж</option><option value="M">Момчета</option><option value="F">Момичета</option></select>
+      <div class="age-picker" id="age-picker-sw">
+        <button class="age-picker-btn" id="age-picker-sw-btn" onclick="toggleAgePicker('sw',event)">
+          <span id="age-picker-sw-label">Всички възрасти</span>
+          <span style="font-size:10px;opacity:.5">▾</span>
+        </button>
+        <div class="age-picker-dropdown" id="age-picker-sw-dd"></div>
+      </div>
+      <select id="sw-sort" onchange="renderSwimmers()">
+        <option value="name">По име А-Я</option>
+        <option value="pts_desc">По макс. точки ↓</option>
+        <option value="year_asc">По година ↑</option>
+        <option value="year_desc">По година ↓</option>
+        <option value="imp_desc">По подобрения ↓</option>
+      </select>
+    </div>
+    <div id="sw-content"></div>
+  </div>
+
+  <!-- EVENTS PAGE -->
+  <div id="pg-events" class="pg">
+    <div class="ph"><div class="ph-left"><h1>По дисциплина</h1><p>Топ резултати — НСК Олимп</p></div></div>
+    <div class="toolbar">
+      <input type="search" id="ev-filter" placeholder="Филтрирай дисциплина…" oninput="renderEvents()" style="width:200px">
+      <select id="ev-gender" onchange="renderEvents()"><option value="">М + Ж</option><option value="M">Момчета</option><option value="F">Момичета</option></select>
+    </div>
+    <div id="ev-content"></div>
+  </div>
+
+  <!-- MANUAL ENTRY PAGE -->
+  <div id="pg-manual" class="pg">
+    <div class="ph"><div class="ph-left"><h1>Ръчно въвеждане</h1><p>Добави плувци и резултати ръчно</p></div></div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:20px">
+
+      <!-- Add swimmer -->
+      <div class="card" style="padding:18px">
+        <div class="card-title" style="margin-bottom:14px">➕ Добави плувец</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div><div class="form-label">Първо име</div>
+              <input type="text" id="ath-fname" placeholder="Иван" style="width:100%"></div>
+            <div><div class="form-label">Фамилия</div>
+              <input type="text" id="ath-lname" placeholder="Петров" style="width:100%"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div><div class="form-label">Г.р.</div>
+              <input type="number" id="ath-year" placeholder="2010" min="2000" max="2025" style="width:100%"></div>
+            <div><div class="form-label">Пол</div>
+              <select id="ath-gender" style="width:100%"><option value="M">Момче</option><option value="F">Момиче</option></select></div>
+          </div>
+          <div><div class="form-label">SwimRankings ID (незадължително)</div>
+            <input type="text" id="ath-swrid" placeholder="напр. 5355151" style="width:100%"></div>
+          <button class="btn-primary" onclick="addManualAthlete()">Добави плувец →</button>
+          <div id="ath-error" style="font-size:12px;color:var(--red);min-height:16px"></div>
+        </div>
+      </div>
+
+      <!-- Add meet -->
+      <div class="card" style="padding:18px">
+        <div class="card-title" style="margin-bottom:14px">🏁 Добави състезание</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div><div class="form-label">Название</div>
+            <input type="text" id="m-name" placeholder="Европейско първенство 2026" style="width:100%"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div><div class="form-label">Град</div>
+              <input type="text" id="m-city" placeholder="София" style="width:100%"></div>
+            <div><div class="form-label">Дата</div>
+              <input type="date" id="m-date" style="width:100%"></div>
+          </div>
+          <div><div class="form-label">Басейн</div>
+            <select id="m-course" style="width:100%"><option value="LCM">50м (LCM)</option><option value="SCM">25м (SCM)</option></select></div>
+          <button class="btn-primary" onclick="addManualMeet()">Добави състезание →</button>
+          <div id="m-meet-list" style="margin-top:4px"></div>
+        </div>
+      </div>
+
+      <!-- Add result -->
+      <div class="card" style="padding:18px">
+        <div class="card-title" style="margin-bottom:14px">⏱ Добави резултат</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div><div class="form-label">Плувец</div>
+            <select id="r-swimmer" style="width:100%"><option value="">— избери —</option></select></div>
+          <div><div class="form-label">Състезание</div>
+            <select id="r-meet" style="width:100%"><option value="">— избери —</option></select></div>
+          <div><div class="form-label">Дисциплина</div>
+            <select id="r-event" style="width:100%">
+              <option>50м Свободен</option><option>100м Свободен</option><option>200м Свободен</option><option>400м Свободен</option><option>800м Свободен</option><option>1500м Свободен</option>
+              <option>50м Гръб</option><option>100м Гръб</option><option>200м Гръб</option>
+              <option>50м Бруст</option><option>100м Бруст</option><option>200м Бруст</option>
+              <option>50м Делфин</option><option>100м Делфин</option><option>200м Делфин</option>
+              <option>100м Съчетано</option><option>200м Съчетано</option><option>400м Съчетано</option>
+            </select></div>
+          <div><div class="form-label">Тип</div>
+            <select id="r-type" style="width:100%" onchange="toggleRelayNote()">
+              <option value="individual">Индивидуален</option>
+              <option value="relay">Щафета — Пост 1</option>
+            </select></div>
+          <div id="r-relay-note" style="display:none;font-size:11px;padding:7px 10px;border-radius:var(--r);background:var(--amber-l);color:var(--amber)">
+            ⚠ Щафетното време се показва без точки.
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div><div class="form-label">Време (мм:сс.хх)</div>
+              <input type="text" id="r-time" placeholder="1:04.29 или 30.00" style="width:100%"></div>
+            <div id="r-points-wrap"><div class="form-label">World Aquatics точки</div>
+              <input type="number" id="r-points" placeholder="0" min="0" max="1200" style="width:100%"></div>
+          </div>
+          <button class="btn-primary" onclick="addManualResult()">Добави резултат →</button>
+          <div id="r-error" style="font-size:12px;color:var(--red);min-height:16px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Results log -->
+    <div class="card" style="padding:0">
+      <div style="padding:14px 18px 0;font-size:13px;font-weight:600">Ръчно въведени резултати</div>
+      <div id="manual-results-log" style="padding:14px 18px"></div>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<script>
+// ── SUPABASE ────────────────────────────────────────────────────────
+const SUPABASE_URL = 'https://rxyjrpzwuggveqaqlpep.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ4eWpycHp3dWdndmVxYXFscGVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzNzMwMjcsImV4cCI6MjA5NTk0OTAyN30.BZ_euv5bYqXPI1-zaVJfwlkzGM3mH_-Xhu8MlmkQLX4';
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ── STATE ───────────────────────────────────────────────────────────
+const MEET_COLORS = ['#4f8ef7','#34d399','#fbbf24','#f87171','#a78bfa','#2dd4bf','#fb923c','#e879f9'];
+let meets = [];
+let athletes = {};
+let hiddenSwrids = new Set();
+let filterMode = 'all';
+let charts = {};
+const selectedAges = { prog: new Set(), sw: new Set() };
+let showHidden = false;
+let manualResultsCache = [];
+
+// ── HELPERS ─────────────────────────────────────────────────────────
+function avColor(n){ const c=['#4f8ef7','#34d399','#a78bfa','#fbbf24','#f472b6','#2dd4bf','#fb923c','#f87171']; return c[n.charCodeAt(0)%c.length]; }
+function initials(n){ return n.split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase(); }
+function parseTimeMs(t){
+  if(!t||t==='00.00') return null;
+  t=t.trim();
+  const p=t.split(':');
+  if(p.length===3) return (parseInt(p[0])*3600+parseInt(p[1])*60+parseFloat(p[2]))*1000;
+  if(p.length===2) return (parseInt(p[0])*60+parseFloat(p[1]))*1000;
+  return parseFloat(t)*1000;
+}
+function fmtTime(ms){
+  if(!ms) return '—';
+  const s=ms/1000;
+  if(s>=60){ const m=Math.floor(s/60); const sec=(s%60).toFixed(2).padStart(5,'0'); return m+':'+sec; }
+  return s.toFixed(2);
+}
+function getAge(a){ return a.year ? new Date().getFullYear()-a.year : 99; }
+function getMaxPts(a){ return a.results.length ? Math.max(...a.results.map(r=>r.points||0)) : 0; }
+function showLoading(v){ document.getElementById('loading-overlay').style.display = v ? 'flex' : 'none'; }
+
+// ── LOAD FROM SUPABASE ──────────────────────────────────────────────
+async function loadData(){
+  showLoading(true);
+  try {
+    const [mr, ar, rr] = await Promise.all([
+      db.from('meets').select('*'),
+      db.from('athletes').select('*').order('name'),
+      db.from('results').select('*')
+    ]);
+    if(mr.error) throw mr.error;
+    if(ar.error) throw ar.error;
+    if(rr.error) throw rr.error;
+
+    meets = mr.data || [];
+    athletes = {};
+    hiddenSwrids = new Set();
+
+    (ar.data||[]).forEach(a=>{
+      athletes[a.swrid] = {...a, results:[], relayResults:[]};
+      if(a.hidden) hiddenSwrids.add(a.swrid);
+    });
+
+    (rr.data||[]).forEach(r=>{
+      const a = athletes[r.swrid];
+      if(!a) return;
+      const res = {
+        event:r.event, time:r.time_str, timeMs:r.time_ms,
+        points:r.points||0, date:r.date||'',
+        meetId:r.meet_id, meetName:r.meet_name||'', meetCity:r.meet_city||'',
+        manual:!!r.manual, dbId:r.id
+      };
+      if(r.is_relay){ res.relay=true; a.relayResults.push(res); }
+      else a.results.push(res);
+    });
+
+    // cache manual results for log
+    manualResultsCache = (rr.data||[]).filter(r=>r.manual);
+
+    renderMeetsList();
+    updateSidebarStats();
+    updateAllFilters();
+    renderAll();
+  } catch(e){
+    showToast('⚠ Грешка при зареждане: '+e.message, true);
+    console.error(e);
+  }
+  showLoading(false);
+}
+
+// ── SAVE AFTER LXF ──────────────────────────────────────────────────
+async function saveToSupabase(meetInfo, parsedAthletes){
+  // Upsert meet
+  const { error: me } = await db.from('meets').upsert({
+    id:meetInfo.id, name:meetInfo.name, city:meetInfo.city||'',
+    course:meetInfo.course||'', date:meetInfo.date||'', color:meetInfo.color
+  });
+  if(me) throw me;
+
+  // Upsert athletes (don't overwrite hidden status)
+  const athRows = Object.values(parsedAthletes).map(a=>({
+    swrid:a.swrid, name:a.name, birthdate:a.birthdate||'',
+    year:a.year||0, gender:a.gender||'', club:a.club||'НСК Олимп'
+  }));
+  if(athRows.length){
+    const { error: ae } = await db.from('athletes')
+      .upsert(athRows, {onConflict:'swrid', ignoreDuplicates:false});
+    if(ae) throw ae;
+  }
+
+  // Upsert results for this meet
+  const resRows = [];
+  Object.values(parsedAthletes).forEach(a=>{
+    a.results.filter(r=>r.meetId===meetInfo.id).forEach(r=>{
+      resRows.push({
+        swrid:a.swrid, event:r.event, time_str:r.time, time_ms:r.timeMs,
+        points:r.points||0, date:r.date||'', meet_id:r.meetId,
+        meet_name:r.meetName||'', meet_city:r.meetCity||'', is_relay:false
+      });
+    });
+    (a.relayResults||[]).filter(r=>r.meetId===meetInfo.id).forEach(r=>{
+      resRows.push({
+        swrid:a.swrid, event:r.event, time_str:r.time, time_ms:r.timeMs,
+        points:0, date:r.date||'', meet_id:r.meetId,
+        meet_name:r.meetName||'', meet_city:r.meetCity||'', is_relay:true
+      });
+    });
+  });
+  if(resRows.length){
+    const { error: re } = await db.from('results')
+      .upsert(resRows, {onConflict:'swrid,meet_id,event,time_ms,is_relay', ignoreDuplicates:true});
+    if(re) throw re;
+  }
+}
+
+// ── REMOVE MEET ─────────────────────────────────────────────────────
+async function removeMeet(meetId, e){
+  e.stopPropagation();
+  if(!confirm('Изтрий всички резултати от това състезание?')) return;
+  showLoading(true);
+  // Delete results first (no cascade in schema)
+  await db.from('results').delete().eq('meet_id', meetId);
+  await db.from('meets').delete().eq('id', meetId);
+  await loadData();
+}
+
+// ── HIDE / UNHIDE ───────────────────────────────────────────────────
+async function hideSwimmer(swrid, e){
+  e.stopPropagation();
+  await db.from('athletes').update({hidden:true}).eq('swrid',swrid);
+  hiddenSwrids.add(swrid);
+  if(athletes[swrid]) athletes[swrid].hidden = true;
+  renderSwimmers(); renderProgress();
+}
+async function unhideSwimmer(swrid, e){
+  e.stopPropagation();
+  await db.from('athletes').update({hidden:false}).eq('swrid',swrid);
+  hiddenSwrids.delete(swrid);
+  if(athletes[swrid]) athletes[swrid].hidden = false;
+  renderSwimmers(); renderProgress();
+}
+
+// ── MANUAL ATHLETE ──────────────────────────────────────────────────
+async function addManualAthlete(){
+  const fname = document.getElementById('ath-fname').value.trim();
+  const lname = document.getElementById('ath-lname').value.trim();
+  const year  = parseInt(document.getElementById('ath-year').value||'0');
+  const gender= document.getElementById('ath-gender').value;
+  const swridInput = document.getElementById('ath-swrid').value.trim();
+  const errEl = document.getElementById('ath-error');
+  errEl.textContent = '';
+
+  if(!fname||!lname){ errEl.textContent='Попълни първо и фамилно име'; return; }
+  if(!year||year<1990||year>2025){ errEl.textContent='Невалидна година на раждане'; return; }
+
+  const name = fname+' '+lname;
+  const swrid = swridInput || 'manual_'+(Date.now())+'_'+Math.random().toString(36).slice(2,6);
+
+  if(athletes[swrid]){ errEl.textContent='Плувец с това ID вече съществува'; return; }
+
+  const row = {swrid, name, birthdate:year+'-01-01', year, gender, club:'НСК Олимп', hidden:false};
+  const { error } = await db.from('athletes').upsert(row);
+  if(error){ errEl.textContent='Грешка: '+error.message; return; }
+
+  athletes[swrid] = {...row, results:[], relayResults:[]};
+  updateSidebarStats(); updateAllFilters(); renderSwimmers(); renderProgress();
+  renderManualPage();
+
+  document.getElementById('ath-fname').value='';
+  document.getElementById('ath-lname').value='';
+  document.getElementById('ath-year').value='';
+  document.getElementById('ath-swrid').value='';
+  showToast('✓ Добавен плувец: '+name);
+}
+
+// ── MANUAL MEET ─────────────────────────────────────────────────────
+async function addManualMeet(){
+  const name   = document.getElementById('m-name').value.trim();
+  const city   = document.getElementById('m-city').value.trim();
+  const date   = document.getElementById('m-date').value;
+  const course = document.getElementById('m-course').value;
+  if(!name||!date){ showToast('⚠ Попълни поне название и дата', true); return; }
+
+  const id = 'manual_'+Date.now();
+  const color = MEET_COLORS[meets.length % MEET_COLORS.length];
+  const row = {id, name, city, course, date, color};
+  const { error } = await db.from('meets').insert(row);
+  if(error){ showToast('⚠ Грешка: '+error.message, true); return; }
+
+  meets.push(row);
+  renderMeetsList(); renderManualPage();
+  document.getElementById('m-name').value='';
+  document.getElementById('m-city').value='';
+  showToast('✓ Добавено: '+name);
+}
+
+// ── MANUAL RESULT ───────────────────────────────────────────────────
+async function addManualResult(){
+  const swrid   = document.getElementById('r-swimmer').value;
+  const meetId  = document.getElementById('r-meet').value;
+  const event   = document.getElementById('r-event').value;
+  const timeStr = document.getElementById('r-time').value.trim();
+  const isRelay = document.getElementById('r-type').value==='relay';
+  const pts     = isRelay?0:parseInt(document.getElementById('r-points')?.value||'0');
+  const errEl   = document.getElementById('r-error');
+  errEl.textContent='';
+
+  if(!swrid||!meetId||!timeStr){ errEl.textContent='Попълни плувец, състезание и време'; return; }
+  const ms = parseTimeMs(timeStr);
+  if(!ms||ms<1000){ errEl.textContent='Невалидно време — използвай формат 1:04.29 или 30.00'; return; }
+
+  const meet = meets.find(m=>m.id===meetId);
+  if(!meet){ errEl.textContent='Не е намерено състезанието'; return; }
+  const a = athletes[swrid];
+  if(!a){ errEl.textContent='Не е намерен плувецът'; return; }
+
+  const evLabel = isRelay ? event+' щафета' : event;
+  const row = {
+    swrid, event:evLabel, time_str:timeStr, time_ms:ms,
+    points:pts, date:meet.date, meet_id:meetId,
+    meet_name:meet.name, meet_city:meet.city||'',
+    is_relay:isRelay, manual:true
+  };
+  const { data, error } = await db.from('results').insert(row).select();
+  if(error){ errEl.textContent='Грешка: '+error.message; return; }
+
+  const res = {
+    event:evLabel, time:timeStr, timeMs:ms, points:pts,
+    date:meet.date, meetId, meetName:meet.name, meetCity:meet.city||'',
+    relay:isRelay, manual:true, dbId:data?.[0]?.id
+  };
+  if(isRelay){ if(!a.relayResults) a.relayResults=[]; a.relayResults.push(res); }
+  else a.results.push(res);
+
+  if(data?.[0]) manualResultsCache.push({...row, id:data[0].id});
+  updateSidebarStats(); renderAll(); renderManualPage();
+
+  document.getElementById('r-time').value='';
+  document.getElementById('r-points').value='';
+  showToast(`✓ Добавен резултат за ${a.name}: ${timeStr} (${pts} т. WA)`);
+}
+
+async function deleteManualResult(dbId){
+  if(!confirm('Изтрий този резултат?')) return;
+  const { error } = await db.from('results').delete().eq('id', dbId);
+  if(error){ showToast('⚠ Грешка: '+error.message, true); return; }
+  manualResultsCache = manualResultsCache.filter(r=>r.id!==dbId);
+  await loadData();
+}
+
+// ── LXF PARSING ─────────────────────────────────────────────────────
+async function extractXML(buf){
+  const bytes=new Uint8Array(buf);
+  if(bytes[0]===0x50&&bytes[1]===0x4B){
+    const zip=await JSZip.loadAsync(buf);
+    const files=Object.keys(zip.files);
+    if(!files.length) throw new Error('Празен ZIP');
+    return await zip.files[files[0]].async('string');
+  }
+  return new TextDecoder('utf-8').decode(bytes);
+}
+function xTag(n){return n&&n.nodeType===1?(n.tagName||n.nodeName||''):''}
+function xAttr(n,a){return n&&n.getAttribute?n.getAttribute(a)||'':''}
+function xChildren(n,tag){const r=[];if(!n||!n.childNodes)return r;for(const c of n.childNodes)if(xTag(c)===tag)r.push(c);return r;}
+function xChild(n,tag){if(!n||!n.childNodes)return null;for(const c of n.childNodes)if(xTag(c)===tag)return c;return null;}
+function xFind(n,tag){if(!n||!n.childNodes)return null;for(const c of n.childNodes){if(xTag(c)===tag)return c;const f=xFind(c,tag);if(f)return f;}return null;}
+function xFindAll(n,tag,out=[]){if(!n||!n.childNodes)return out;for(const c of n.childNodes){if(xTag(c)===tag)out.push(c);xFindAll(c,tag,out);}return out;}
+
+async function parseLXF(file){
+  const buf=await file.arrayBuffer();
+  const xml=await extractXML(buf);
+  const doc=new DOMParser().parseFromString(xml,'text/xml');
+  const meet=xFind(doc.documentElement,'MEET');
+  if(!meet) throw new Error('Не е намерен MEET елемент');
+
+  const meetId='m_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
+  const meetColor=MEET_COLORS[meets.length%MEET_COLORS.length];
+  const meetInfo={id:meetId,color:meetColor,name:xAttr(meet,'name')||file.name,city:xAttr(meet,'city')||'',course:xAttr(meet,'course')||'',date:''};
+
+  const SMAP={'FREE':'Свободен','BACK':'Гръб','BREAST':'Бруст','FLY':'Делфин','MEDLEY':'Съчетано'};
+  const evMap={};
+  xFindAll(meet,'SESSION').forEach(sess=>{
+    const d=xAttr(sess,'date');
+    if(d&&(!meetInfo.date||d<meetInfo.date)) meetInfo.date=d;
+    xChildren(xChild(sess,'EVENTS'),'EVENT').forEach(ev=>{
+      const eid=xAttr(ev,'eventid');
+      if(!eid) return;
+      const ss=xChild(ev,'SWIMSTYLE');
+      if(!ss) return;
+      const rc=parseInt(xAttr(ss,'relaycount')||'1');
+      const stroke=SMAP[xAttr(ss,'stroke')]||xAttr(ss,'stroke')||'';
+      const dist=xAttr(ss,'distance')||'';
+      evMap[eid]={label:`${dist}м ${stroke}`,relay:rc>1,dist:parseInt(dist),stroke,date:d||meetInfo.date};
+    });
+  });
+
+  const knownSwrids=new Set(Object.keys(athletes));
+  const knownNames=new Set(Object.values(athletes).map(a=>a.name.toLowerCase().trim()));
+  function isOlimpAthlete(swrid,fname,lname,bd){
+    if(swrid&&swrid.length>3&&knownSwrids.has(swrid)) return true;
+    const n=(fname+' '+lname).toLowerCase().trim();
+    if(!knownNames.has(n)&&!knownNames.has((lname+' '+fname).toLowerCase().trim())) return false;
+    if(bd&&bd.length>=4){
+      const yr=parseInt(bd.slice(0,4));
+      const known=Object.values(athletes).find(a=>a.name.toLowerCase().trim()===n);
+      if(known&&known.year&&yr&&Math.abs(known.year-yr)>1) return false;
+    }
+    return true;
+  }
+
+  const clubsEl=xFind(meet,'CLUBS');
+  const allClubs=clubsEl?xChildren(clubsEl,'CLUB'):[];
+  const parsedAthletes={};
+  let added=0;
+
+  // Pass 1 — code OL
+  allClubs.forEach(club=>{
+    if(xAttr(club,'code').toUpperCase()!=='OL') return;
+    const athEl=xChild(club,'ATHLETES');
+    const relEl=xChild(club,'RELAYS');
+    const athMap={};
+    xChildren(athEl,'ATHLETE').forEach(ath=>{
+      const swrid=xAttr(ath,'swrid');
+      const fname=xAttr(ath,'firstname');
+      const lname=xAttr(ath,'lastname');
+      const bd=xAttr(ath,'birthdate');
+      athMap[xAttr(ath,'athleteid')]=swrid;
+      if(!parsedAthletes[swrid]){
+        parsedAthletes[swrid]={name:fname+' '+lname,swrid,birthdate:bd,year:bd?parseInt(bd):0,gender:xAttr(ath,'gender'),club:xAttr(club,'name'),results:[],relayResults:[]};
+      }
+      const a=parsedAthletes[swrid];
+      xChildren(xChild(ath,'RESULTS'),'RESULT').forEach(r=>{
+        const ev=evMap[xAttr(r,'eventid')];
+        if(!ev||ev.relay) return;
+        let t=xAttr(r,'swimtime');
+        if(t.startsWith('00:00:'))t=t.slice(6);else if(t.startsWith('00:'))t=t.slice(3);
+        const ms=parseTimeMs(t);
+        if(!ms||ms<1000) return;
+        a.results.push({event:ev.label,time:t,timeMs:ms,points:parseInt(xAttr(r,'points')||'0'),date:ev.date||meetInfo.date,meetId,meetName:meetInfo.name,meetCity:meetInfo.city});
+        added++;
+      });
+      xChildren(relEl,'RESULT').forEach(r=>{
+        const ev=evMap[xAttr(r,'eventid')];
+        if(!ev||!ev.relay) return;
+        let t=xAttr(r,'swimtime');
+        if(t.startsWith('00:00:'))t=t.slice(6);else if(t.startsWith('00:'))t=t.slice(3);
+        const ms=parseTimeMs(t);
+        if(!ms||ms<1000) return;
+        const rpsEl=xChild(r,'RELAYPOSITIONS');
+        if(!rpsEl) return;
+        let pos1id=null;
+        xChildren(rpsEl,'RELAYPOSITION').forEach(p=>{if(xAttr(p,'number')==='1')pos1id=xAttr(p,'athleteid');});
+        if(!pos1id) return;
+        const sw2=athMap[pos1id];
+        if(!sw2||!parsedAthletes[sw2]) return;
+        parsedAthletes[sw2].relayResults.push({event:`${ev.dist}м ${ev.stroke} щафета`,time:t,timeMs:ms,points:0,relay:true,date:ev.date||meetInfo.date,meetId,meetName:meetInfo.name,meetCity:meetInfo.city});
+      });
+    });
+  });
+
+  // Pass 2 — international
+  allClubs.forEach(club=>{
+    if(xAttr(club,'code').toUpperCase()==='OL') return;
+    const athEl=xChild(club,'ATHLETES');
+    const athMap={};
+    xChildren(athEl,'ATHLETE').forEach(ath=>{athMap[xAttr(ath,'athleteid')]=xAttr(ath,'swrid')||xAttr(ath,'athleteid');});
+    xChildren(athEl,'ATHLETE').forEach(ath=>{
+      const swrid=xAttr(ath,'swrid');
+      const fname=xAttr(ath,'firstname');
+      const lname=xAttr(ath,'lastname');
+      const bd=xAttr(ath,'birthdate');
+      if(!isOlimpAthlete(swrid,fname,lname,bd)) return;
+      const norm=(fname+' '+lname).toLowerCase().trim();
+      let a=parsedAthletes[swrid]||Object.values(parsedAthletes).find(x=>x.name.toLowerCase().trim()===norm);
+      if(!a){ a=athletes[swrid]||Object.values(athletes).find(x=>x.name.toLowerCase().trim()===norm); }
+      if(!a) return;
+      if(!parsedAthletes[a.swrid]){ parsedAthletes[a.swrid]={...a,results:[],relayResults:[]}; }
+      const pa=parsedAthletes[a.swrid];
+      xChildren(xChild(ath,'RESULTS'),'RESULT').forEach(r=>{
+        const ev=evMap[xAttr(r,'eventid')];
+        if(!ev||ev.relay) return;
+        let t=xAttr(r,'swimtime');
+        if(t.startsWith('00:00:'))t=t.slice(6);else if(t.startsWith('00:'))t=t.slice(3);
+        const ms=parseTimeMs(t);
+        if(!ms||ms<1000) return;
+        pa.results.push({event:ev.label,time:t,timeMs:ms,points:parseInt(xAttr(r,'points')||'0'),date:ev.date||meetInfo.date,meetId,meetName:meetInfo.name,meetCity:meetInfo.city,intl:true});
+        added++;
+      });
+    });
+  });
+
+  return {meetInfo, parsedAthletes, added};
+}
+
+// ── FILE HANDLING ────────────────────────────────────────────────────
+async function handleFiles(files){ for(const f of files) await loadFile(f); }
+function handleDrop(e){
+  e.preventDefault();
+  document.getElementById('dropzone').classList.remove('over');
+  handleFiles(e.dataTransfer.files);
+}
+async function loadFile(file){
+  try{
+    showToast('⏳ Зарежда се: '+file.name);
+    const {meetInfo,parsedAthletes,added}=await parseLXF(file);
+    showLoading(true);
+    await saveToSupabase(meetInfo, parsedAthletes);
+    await loadData();
+    if(added===0) showToast('⚠ Не са намерени плувци от Олимп (код OL) в този файл.', true);
+    else showToast(`✓ ${meetInfo.name} — ${added} резултата записани в базата`);
+  }catch(e){
+    showLoading(false);
+    console.error(e);
+    showToast('⚠ Грешка: '+e.message, true);
+  }
+}
+
+// ── SIDEBAR ──────────────────────────────────────────────────────────
+function renderMeetsList(){
+  const el=document.getElementById('meets-items');
+  if(!meets.length){el.innerHTML='<div style="font-size:12px;color:var(--text3);padding:8px 4px">Все още няма качени файлове</div>';return;}
+  el.innerHTML=meets.map(m=>`
+    <div class="meet-item">
+      <div class="meet-dot" style="background:${m.color}"></div>
+      <div class="meet-info">
+        <div class="meet-name">${m.name}</div>
+        <div class="meet-meta">${m.date}${m.city?' · '+m.city:''}${m.course?' · '+m.course:''}</div>
+      </div>
+      <button class="meet-del" onclick="removeMeet('${m.id}',event)" title="Изтрий">✕</button>
+    </div>`).join('');
+}
+function updateSidebarStats(){
+  const allAth=Object.values(athletes).filter(a=>!a.hidden);
+  const allRes=allAth.flatMap(a=>a.results);
+  const improved=allAth.filter(a=>{
+    return [...new Set(a.results.map(r=>r.event))].some(ev=>{
+      const rs=a.results.filter(r=>r.event===ev);
+      if(rs.length<2) return false;
+      return Math.min(...rs.map(r=>r.timeMs))<Math.max(...rs.map(r=>r.timeMs));
+    });
+  }).length;
+  document.getElementById('sb-sw').textContent=allAth.length;
+  document.getElementById('sb-res').textContent=allRes.length;
+  document.getElementById('sb-meets').textContent=meets.length;
+  document.getElementById('sb-imp').textContent=improved;
+}
+
+// ── FILTERS ──────────────────────────────────────────────────────────
+function updateAllFilters(){
+  const allAth=Object.values(athletes);
+  const years=[...new Set(allAth.map(a=>a.year).filter(Boolean))].sort();
+  const allAges=[...new Set(allAth.map(a=>getAge(a)).filter(a=>a<99))].sort((a,b)=>a-b);
+  buildAgePicker('prog',allAges,renderProgress);
+  buildAgePicker('sw',allAges,renderSwimmers);
+  const events=[...new Set(allAth.flatMap(a=>a.results.map(r=>r.event)))].sort();
+  const yr=document.getElementById('prog-year');
+  if(yr){const c=yr.value;yr.innerHTML='<option value="">Всички годишници</option>'+years.map(y=>`<option value="${y}">${y}</option>`).join('');yr.value=c;}
+  const ev=document.getElementById('prog-event');
+  if(ev){const c=ev.value;ev.innerHTML='<option value="">Всички дисциплини</option>'+events.map(e=>`<option value="${e}">${e}</option>`).join('');ev.value=c;}
+}
+function setFilter(mode,btn){
+  filterMode=mode;
+  document.querySelectorAll('.fp').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  renderProgress();
+}
+
+// ── AGE PICKER ───────────────────────────────────────────────────────
+function buildAgePicker(key,ages,fn){
+  const dd=document.getElementById(`age-picker-${key}-dd`);
+  if(!dd) return;
+  const valid=new Set(ages.map(String));
+  for(const a of [...selectedAges[key]]) if(!valid.has(String(a))) selectedAges[key].delete(a);
+  dd.innerHTML=ages.map(age=>`<label class="age-picker-opt"><input type="checkbox" value="${age}" ${selectedAges[key].has(age)?'checked':''} onchange="toggleAge('${key}',${age})">${age} години</label>`).join('')+
+    `<button class="age-picker-clear" onclick="clearAges('${key}')">Изчисти избора</button>`;
+  updateAgePickerLabel(key);
+}
+function toggleAgePicker(key,e){
+  e.stopPropagation();
+  const dd=document.getElementById(`age-picker-${key}-dd`);
+  const btn=document.getElementById(`age-picker-${key}-btn`);
+  const open=dd.classList.contains('open');
+  document.querySelectorAll('.age-picker-dropdown').forEach(d=>d.classList.remove('open'));
+  document.querySelectorAll('.age-picker-btn').forEach(b=>b.classList.remove('active'));
+  if(!open){dd.classList.add('open');btn.classList.add('active');}
+}
+function toggleAge(key,age){
+  if(selectedAges[key].has(age))selectedAges[key].delete(age);else selectedAges[key].add(age);
+  updateAgePickerLabel(key);
+  if(key==='prog')renderProgress();else renderSwimmers();
+}
+function clearAges(key){
+  selectedAges[key].clear();
+  document.querySelectorAll(`#age-picker-${key}-dd input[type=checkbox]`).forEach(cb=>cb.checked=false);
+  updateAgePickerLabel(key);
+  if(key==='prog')renderProgress();else renderSwimmers();
+}
+function updateAgePickerLabel(key){
+  const lbl=document.getElementById(`age-picker-${key}-label`);
+  if(!lbl) return;
+  const sel=selectedAges[key];
+  if(!sel.size){lbl.textContent='Всички възрасти';return;}
+  const s=[...sel].sort((a,b)=>a-b);
+  lbl.textContent=s.length<=3?s.map(a=>a+' г.').join(', '):`${s.length} възрасти`;
+}
+document.addEventListener('click',()=>{
+  document.querySelectorAll('.age-picker-dropdown').forEach(d=>d.classList.remove('open'));
+  document.querySelectorAll('.age-picker-btn').forEach(b=>b.classList.remove('active'));
+});
+
+// ── PROGRESSION LOGIC ────────────────────────────────────────────────
+function getProgression(a,eventFilter){
+  const evs=eventFilter?[eventFilter]:[...new Set(a.results.map(r=>r.event))];
+  const evData={};
+  evs.forEach(ev=>{
+    const rs=a.results.filter(r=>r.event===ev).sort((x,y)=>new Date(x.date)-new Date(y.date)||x.timeMs-y.timeMs);
+    const byMeet={};
+    rs.forEach(r=>{if(!byMeet[r.meetId]||r.timeMs<byMeet[r.meetId].timeMs)byMeet[r.meetId]=r;});
+    const deduped=Object.values(byMeet).sort((x,y)=>new Date(x.date)-new Date(y.date));
+    if(!deduped.length) return;
+    const best=Math.min(...deduped.map(r=>r.timeMs));
+    const worst=Math.max(...deduped.map(r=>r.timeMs));
+    evData[ev]={results:deduped,best,worst,first:deduped[0].timeMs,last:deduped[deduped.length-1].timeMs,
+      improved:deduped.length>=2&&best<worst,delta:deduped.length>=2?(worst-best)/1000:0,count:deduped.length};
+  });
+  return evData;
+}
+
+// ── PROGRESS PAGE ────────────────────────────────────────────────────
+function renderProgress(){
+  const allAth=Object.values(athletes);
+  if(!allAth.length){
+    document.getElementById('prog-sub').textContent='Качи LXF файл или добави плувци ръчно';
+    document.getElementById('prog-metrics').style.display='none';
+    document.getElementById('prog-toolbar').style.display='none';
+    document.getElementById('prog-pills').style.display='none';
+    document.getElementById('prog-content').innerHTML=`<div class="empty-state"><div class="empty-icon">🏊</div><div class="empty-title">Няма данни</div><div class="empty-sub">Качи LXF файл или добави плувци ръчно от менюто</div></div>`;
+    return;
+  }
+  const q=(document.getElementById('prog-search')?.value||'').toLowerCase();
+  const g=document.getElementById('prog-gender')?.value||'';
+  const selAges=selectedAges['prog'];
+  const y=document.getElementById('prog-year')?.value||'';
+  const ev=document.getElementById('prog-event')?.value||'';
+  const sortBy=document.getElementById('prog-sort')?.value||'improved';
+
+  let list=allAth.filter(a=>{
+    if(hiddenSwrids.has(a.swrid)) return false;
+    const prog=getProgression(a,ev||null);
+    if(!Object.keys(prog).length) return false;
+    if(q&&!a.name.toLowerCase().includes(q)) return false;
+    if(g&&a.gender!==g) return false;
+    if(y&&a.year!=y) return false;
+    if(selAges.size>0&&!selAges.has(getAge(a))) return false;
+    if(filterMode==='improved'&&!Object.values(prog).some(e=>e.improved)) return false;
+    if(filterMode==='multiple'&&!Object.values(prog).some(e=>e.count>=2)) return false;
+    return true;
+  });
+
+  list.sort((a,b)=>{
+    if(sortBy==='pts_desc') return getMaxPts(b)-getMaxPts(a);
+    if(sortBy==='pts_asc')  return getMaxPts(a)-getMaxPts(b);
+    if(sortBy==='name')     return a.name.localeCompare(b.name);
+    if(sortBy==='year_asc') return a.year-b.year;
+    if(sortBy==='year_desc')return b.year-a.year;
+    const pa=Object.values(getProgression(a)).filter(e=>e.improved).length;
+    const pb=Object.values(getProgression(b)).filter(e=>e.improved).length;
+    return pb-pa||getMaxPts(b)-getMaxPts(a);
+  });
+
+  const totalImp=allAth.filter(a=>!hiddenSwrids.has(a.swrid)&&Object.values(getProgression(a)).some(e=>e.improved)).length;
+  const totalRes=allAth.filter(a=>!hiddenSwrids.has(a.swrid)).reduce((s,a)=>s+a.results.length,0);
+
+  document.getElementById('prog-metrics').style.display='grid';
+  document.getElementById('prog-toolbar').style.display='flex';
+  document.getElementById('prog-pills').style.display='flex';
+  document.getElementById('prog-sub').textContent=`${allAth.filter(a=>!hiddenSwrids.has(a.swrid)).length} плувци · ${meets.length} ${meets.length===1?'файл':'файла'}`;
+  document.getElementById('prog-metrics').innerHTML=`
+    <div class="mc"><div class="mc-l">Плувци</div><div class="mc-v">${allAth.filter(a=>!hiddenSwrids.has(a.swrid)).length}</div></div>
+    <div class="mc hi"><div class="mc-l">С подобрение</div><div class="mc-v">${totalImp}</div><div class="mc-s">поне в 1 дисц.</div></div>
+    <div class="mc"><div class="mc-l">Резултата</div><div class="mc-v">${totalRes}</div></div>
+    <div class="mc"><div class="mc-l">Файла</div><div class="mc-v">${meets.length}</div></div>`;
+
+  if(!list.length){
+    document.getElementById('prog-content').innerHTML='<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-title">Няма плувци</div><div class="empty-sub">Промени филтрите</div></div>';
+    return;
+  }
+
+  document.getElementById('prog-content').innerHTML=`<div class="sw-grid">${list.map(a=>{
+    const prog=getProgression(a,ev||null);
+    const evList=Object.entries(prog).sort((x,y)=>y[1].count-x[1].count);
+    const impCount=evList.filter(([,e])=>e.improved).length;
+    const multiCount=evList.filter(([,e])=>e.count>=2).length;
+    const col=avColor(a.name);
+    const pills=evList.map(([evName,e])=>{
+      const cls=e.count===1?'single':e.improved?'improved':'worse';
+      const dir=e.count>=2&&e.last<e.first;
+      return `<span class="ev-pill ${cls}">${evName}${e.count>=2?(dir?' ▲':' ▼'):''}</span>`;
+    }).join('');
+    const pct=evList.length?Math.round(impCount/evList.length*100):0;
+    return `<div class="sw-card" onclick="showSwimmerDetail('${a.swrid}')">
+      <div class="sw-card-head">
+        <div class="av" style="width:40px;height:40px;font-size:13px;background:${col}22;color:${col}">${initials(a.name)}</div>
+        <div style="flex:1;min-width:0">
+          <div class="sw-card-name">${a.name}</div>
+          <div class="sw-card-meta">${a.year} · ${a.gender==='M'?'М':'Ж'} · ${getAge(a)} г. · ${evList.length} дисц. · <span style="color:var(--blue);font-weight:600">${getMaxPts(a)||'—'} т.</span> · <span style="color:${impCount>0?'var(--green)':'var(--text3)'}">${impCount} подобр.</span></div>
+        </div>
+        <div class="pulse ${impCount>0?'green':multiCount>0?'red':'gray'}"></div>
+      </div>
+      <div class="sw-card-body">
+        <div class="ev-pills">${pills}</div>
+        ${multiCount>0?`<div class="sw-prog-bar"><div class="sw-prog-fill" style="width:${pct}%;background:${pct>60?'var(--green)':pct>30?'var(--amber)':'var(--red)'}"></div></div>`:''}
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+// ── SWIMMER DETAIL ───────────────────────────────────────────────────
+function showSwimmerDetail(swrid){
+  const a=athletes[swrid]; if(!a) return;
+  document.getElementById('progress-list').style.display='none';
+  document.getElementById('progress-detail').style.display='block';
+  killCharts(); renderSwimmerDetail(a);
+}
+function showProgressList(){
+  document.getElementById('progress-list').style.display='block';
+  document.getElementById('progress-detail').style.display='none';
+  killCharts();
+}
+function killCharts(){Object.values(charts).forEach(c=>c.destroy());charts={};}
+
+function renderSwimmerDetail(a){
+  const col=avColor(a.name);
+  const prog=getProgression(a);
+  const evList=Object.entries(prog).sort((x,y)=>y[1].count!==x[1].count?y[1].count-x[1].count:x[0].localeCompare(y[0]));
+  const impCount=evList.filter(([,e])=>e.improved).length;
+  const srLink=`https://www.swimrankings.net/index.php?page=athleteDetail&athleteId=${a.swrid}`;
+
+  document.getElementById('swimmer-detail-content').innerHTML=`
+    <div class="detail-header">
+      <div class="av" style="width:56px;height:56px;font-size:18px;background:${col}22;color:${col}">${initials(a.name)}</div>
+      <div style="flex:1">
+        <div class="detail-name">${a.name}</div>
+        <div class="detail-meta">${a.club||'НСК Олимп'} · ${a.birthdate||a.year} · ${getAge(a)} год.</div>
+        <div class="tags">
+          <span class="tag tag-blue">${a.gender==='M'?'Момче':'Момиче'}</span>
+          <span class="tag tag-green">${impCount} подобрения</span>
+          <span class="tag tag-gray">${evList.length} дисциплини</span>
+          <span class="tag tag-gray">${a.results.length} старта</span>
+          ${a.swrid&&!a.swrid.startsWith('manual_')?`<a href="${srLink}" target="_blank" style="text-decoration:none"><span class="tag tag-gray">SwimRankings ↗</span></a>`:''}
+        </div>
+      </div>
+    </div>
+    ${meets.length>=2?`<div class="notice"><b>Сравнение между ${meets.length} файла.</b> Зелено = подобрение, Червено = влошаване.</div>`:'<div class="notice">Качи повече LXF файлове за да видиш прогресия.</div>'}
+    <div class="ev-sections" id="ev-sections-wrap"></div>
+    ${a.relayResults&&a.relayResults.length?`<div style="margin-top:20px"><div style="font-size:13px;font-weight:600;margin-bottom:10px">Щафета — Пост 1</div><div id="relay-sections-wrap" class="ev-sections"></div></div>`:''}`;
+
+  const wrap=document.getElementById('ev-sections-wrap');
+  evList.forEach(([evName,evData],idx)=>{
+    const chartId=`chart_${a.swrid}_${idx}`;
+    const hasMulti=evData.results.length>=2;
+    const badgeCls=evData.count===1?'one':evData.improved?'imp':'reg';
+    const badgeText=evData.count===1?'1 старт':(evData.last<evData.first)?`▲ -${evData.delta.toFixed(2)}с`:`▼ +${evData.delta.toFixed(2)}с`;
+    const resRows=evData.results.map((r,i)=>{
+      const prev=i>0?evData.results[i-1].timeMs:null;
+      const delta=prev?(prev-r.timeMs)/1000:null;
+      const dStr=delta!==null?(delta>0?`▲ ${delta.toFixed(2)}с`:delta<0?`▼ ${Math.abs(delta).toFixed(2)}с`:'='):'—';
+      const dCls=delta===null?'':delta>0?'pos':'neg';
+      return `<div class="res-row">
+        <div><div class="res-time">${r.time}</div><div class="res-meet">${r.meetName}</div></div>
+        <div style="text-align:right"><div class="res-delta ${dCls}">${dStr}</div>
+        <div class="res-pts">${r.points} т. WA · ${r.date}</div></div></div>`;
+    }).join('');
+    const div=document.createElement('div');
+    div.className='ev-section';
+    div.innerHTML=`<div class="ev-section-head"><div class="ev-section-name">${evName}</div><span class="ev-prog-badge ${badgeCls}">${badgeText}</span></div>
+      <div class="ev-section-body">${hasMulti?`<div class="chart-wrap"><canvas id="${chartId}"></canvas></div>`:''}
+      <div class="results-mini">${resRows}</div></div>`;
+    wrap.appendChild(div);
+    if(hasMulti){
+      const sorted=evData.results;
+      const labels=sorted.map(r=>{const m=meets.find(m=>m.id===r.meetId);return m?m.city||m.name.slice(0,12):r.date;});
+      const data=sorted.map(r=>r.timeMs/1000);
+      const bc=evData.improved?'#34d399':'#f87171';
+      charts[chartId]=new Chart(document.getElementById(chartId),{
+        type:'line',
+        data:{labels,datasets:[{label:evName,data,borderColor:bc,backgroundColor:bc+'18',
+          pointBackgroundColor:sorted.map(r=>meets.find(m=>m.id===r.meetId)?.color||bc),
+          pointRadius:6,pointHoverRadius:8,tension:0.35,fill:true,borderWidth:2.5,
+          segment:{borderColor:ctx=>data[ctx.p0DataIndex+1]<data[ctx.p0DataIndex]?'#34d399':'#f87171'}}]},
+        options:{responsive:true,maintainAspectRatio:false,
+          plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>{const v=ctx.raw;const m=Math.floor(v/60);const s=(v%60).toFixed(2).padStart(5,'0');return m>0?m+':'+s:v.toFixed(2)+'с';}}}},
+          scales:{y:{reverse:true,ticks:{callback:v=>{const m=Math.floor(v/60);const s=(v%60).toFixed(2).padStart(5,'0');return m>0?m+':'+s:v.toFixed(2);},color:'#55607a',font:{size:10}},grid:{color:'rgba(255,255,255,.04)'}},
+                  x:{ticks:{color:'#55607a',font:{size:10}},grid:{display:false}}}}});
+    }
+  });
+
+  // Relay sections
+  const rw=document.getElementById('relay-sections-wrap');
+  if(rw&&a.relayResults&&a.relayResults.length){
+    const relMap={};
+    a.relayResults.forEach(r=>{relMap[r.event]=relMap[r.event]||[];relMap[r.event].push(r);});
+    Object.entries(relMap).forEach(([evName,rrs],idx)=>{
+      const sorted=rrs.sort((x,y)=>new Date(x.date)-new Date(y.date));
+      const hasMulti=sorted.length>=2;
+      const chartId=`rchart_${a.swrid}_${idx}`;
+      const best=Math.min(...sorted.map(r=>r.timeMs)),worst=Math.max(...sorted.map(r=>r.timeMs));
+      const imp=hasMulti&&sorted[sorted.length-1].timeMs<sorted[0].timeMs;
+      const badgeCls=!hasMulti?'one':imp?'imp':'reg';
+      const delta=((worst-best)/1000).toFixed(2);
+      const badgeText=!hasMulti?'1 резултат':imp?`▲ -${delta}с`:`▼ +${delta}с`;
+      const resRows=sorted.map((r,i)=>{
+        const prev=i>0?sorted[i-1].timeMs:null;
+        const d=prev?(prev-r.timeMs)/1000:null;
+        const dStr=d!==null?(d>0?`▲ ${d.toFixed(2)}с`:d<0?`▼ ${Math.abs(d).toFixed(2)}с`:'='):'—';
+        const dCls=d===null?'':d>0?'pos':'neg';
+        return `<div class="res-row"><div><div class="res-time">${r.time}</div><div class="res-meet">${r.meetName}</div></div>
+          <div style="text-align:right"><div class="res-delta ${dCls}">${dStr}</div><div class="res-pts">без точки · ${r.date}</div></div></div>`;
+      }).join('');
+      const div=document.createElement('div');
+      div.className='ev-section';
+      div.innerHTML=`<div class="ev-section-head"><div class="ev-section-name">${evName}</div><span class="ev-prog-badge ${badgeCls}">${badgeText}</span></div>
+        <div class="ev-section-body">${hasMulti?`<div class="chart-wrap"><canvas id="${chartId}"></canvas></div>`:''}
+        <div class="results-mini">${resRows}</div></div>`;
+      rw.appendChild(div);
+    });
+  }
+}
+
+// ── SWIMMERS PAGE ────────────────────────────────────────────────────
+let showHidden=false;
+function toggleShowHidden(){
+  showHidden=!showHidden;
+  document.getElementById('show-hidden-btn').textContent=showHidden?'Скрий скритите':'Покажи скритите';
+  renderSwimmers();
+}
+function renderSwimmers(){
+  const q=(document.getElementById('sw-search')?.value||'').toLowerCase();
+  const g=document.getElementById('sw-gender')?.value||'';
+  const sortBy=document.getElementById('sw-sort')?.value||'name';
+  const selAges=selectedAges['sw'];
+  let list=Object.values(athletes).filter(a=>{
+    if(!showHidden&&hiddenSwrids.has(a.swrid)) return false;
+    if(showHidden&&!hiddenSwrids.has(a.swrid)) return false;
+    if(q&&!a.name.toLowerCase().includes(q)) return false;
+    if(g&&a.gender!==g) return false;
+    if(selAges.size>0&&!selAges.has(getAge(a))) return false;
+    return true;
+  });
+  if(!showHidden) list=Object.values(athletes).filter(a=>{
+    if(hiddenSwrids.has(a.swrid)) return false;
+    if(q&&!a.name.toLowerCase().includes(q)) return false;
+    if(g&&a.gender!==g) return false;
+    if(selAges.size>0&&!selAges.has(getAge(a))) return false;
+    return true;
+  });
+  list.sort((a,b)=>{
+    const bpA=getMaxPts(a),bpB=getMaxPts(b);
+    const iA=Object.values(getProgression(a)).filter(e=>e.improved).length;
+    const iB=Object.values(getProgression(b)).filter(e=>e.improved).length;
+    if(sortBy==='pts_desc') return bpB-bpA;
+    if(sortBy==='pts_asc')  return bpA-bpB;
+    if(sortBy==='year_asc') return a.year-b.year;
+    if(sortBy==='year_desc')return b.year-a.year;
+    if(sortBy==='imp_desc') return iB-iA;
+    return a.name.localeCompare(b.name);
+  });
+  const hiddenCount=[...hiddenSwrids].filter(id=>athletes[id]).length;
+  document.getElementById('sw-sub').textContent=showHidden?`${list.length} скрити плувци`:`${list.length} плувци от Олимп${hiddenCount?` · ${hiddenCount} скрити`:''}`;
+  const el=document.getElementById('sw-content');
+  if(!list.length){el.innerHTML=`<div class="empty-state"><div class="empty-icon">🏊</div><div class="empty-title">${showHidden?'Няма скрити плувци':'Няма плувци'}</div></div>`;return;}
+  el.innerHTML=`<div style="background:var(--surf);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden">
+    <table><thead><tr><th>Плувец</th><th>Пол</th><th>Г.р.</th><th>Дисциплини</th><th>Резултата</th><th>Макс. т. WA</th><th>Подобрения</th><th></th></tr></thead>
+    <tbody>${list.map(a=>{
+      const prog=getProgression(a);
+      const evs=Object.entries(prog);
+      const imp=evs.filter(([,e])=>e.improved).length;
+      const bp=getMaxPts(a);
+      const col=avColor(a.name);
+      const isHid=hiddenSwrids.has(a.swrid);
+      return `<tr class="clickable" onclick="go('progress');showSwimmerDetail('${a.swrid}')">
+        <td><div style="display:flex;align-items:center;gap:9px">
+          <div class="av" style="width:28px;height:28px;font-size:10px;background:${col}22;color:${col}">${initials(a.name)}</div>
+          <span style="font-weight:500;${isHid?'opacity:.5':''}">${a.name}</span>
+        </div></td>
+        <td>${a.gender==='M'?'М':'Ж'}</td>
+        <td>${a.year}</td>
+        <td>${evs.length}</td>
+        <td>${a.results.length}</td>
+        <td><span class="mono" style="color:var(--blue)">${bp||'—'}</span></td>
+        <td>${imp>0?`<span style="color:var(--green);font-weight:600">${imp} ▲</span>`:`<span style="color:var(--text3)">—</span>`}</td>
+        <td><button onclick="${isHid?`unhideSwimmer('${a.swrid}',event)`:`hideSwimmer('${a.swrid}',event)`}"
+          style="font-size:11px;padding:3px 9px;border-radius:5px;border:1px solid var(--border2);background:none;color:var(--text3);cursor:pointer;white-space:nowrap">
+          ${isHid?'Върни':'Скрий'}</button></td>
+      </tr>`;
+    }).join('')}</tbody></table></div>`;
+}
+
+// ── EVENTS PAGE ──────────────────────────────────────────────────────
+function renderEvents(){
+  const q=(document.getElementById('ev-filter')?.value||'').toLowerCase();
+  const g=document.getElementById('ev-gender')?.value||'';
+  const allAth=Object.values(athletes).filter(a=>!hiddenSwrids.has(a.swrid));
+  const evNames=[...new Set(allAth.flatMap(a=>a.results.map(r=>r.event)))].filter(e=>!q||e.toLowerCase().includes(q)).sort();
+  const el=document.getElementById('ev-content');
+  if(!evNames.length){el.innerHTML='<div class="empty-state"><div class="empty-icon">🏊</div><div class="empty-title">Няма данни</div></div>';return;}
+  el.innerHTML=evNames.map(ev=>{
+    const rows=allAth.flatMap(a=>{
+      const prog=getProgression(a,ev);
+      if(!prog[ev]) return [];
+      const best=prog[ev].results.reduce((b,r)=>r.timeMs<b.timeMs?r:b);
+      return [{athlete:a,best,prog:prog[ev]}];
+    }).filter(x=>!g||x.athlete.gender===g).sort((a,b)=>a.best.timeMs-b.best.timeMs);
+    if(!rows.length) return '';
+    return `<div class="event-block">
+      <div class="event-block-head" onclick="this.parentElement.classList.toggle('open')">
+        <div class="event-block-title">${ev} <span style="font-size:11px;color:var(--text3);font-weight:400;margin-left:6px">${rows.length} плувци</span></div>
+        <span style="font-size:12px;color:var(--text3)">▾</span>
+      </div>
+      <div class="event-block-body">
+        <table><thead><tr><th>#</th><th>Плувец</th><th>Най-добро</th><th>Прогресия</th><th>Точки WA</th></tr></thead>
+        <tbody>${rows.slice(0,20).map((r,i)=>{
+          const col=avColor(r.athlete.name);
+          return `<tr class="clickable" onclick="go('progress');showSwimmerDetail('${r.athlete.swrid}')">
+            <td style="font-weight:700;color:var(--text3)">${i+1}</td>
+            <td><div style="display:flex;align-items:center;gap:8px">
+              <div class="av" style="width:24px;height:24px;font-size:9px;background:${col}22;color:${col}">${initials(r.athlete.name)}</div>
+              <div><div style="font-weight:500">${r.athlete.name}</div><div style="font-size:10px;color:var(--text3)">${r.athlete.year}</div></div>
+            </div></td>
+            <td class="mono">${r.best.time}</td>
+            <td>${r.prog.count>=2?(r.prog.improved?'<span style="color:var(--green);font-weight:600">▲ подобрение</span>':'<span style="color:var(--red);font-weight:600">▼ влошаване</span>'):'<span style="color:var(--text3)">1 старт</span>'}</td>
+            <td style="color:var(--blue);font-weight:600">${r.best.points||'—'}</td>
+          </tr>`;
+        }).join('')}</tbody></table>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── MANUAL PAGE ──────────────────────────────────────────────────────
+function toggleRelayNote(){
+  const isRelay=document.getElementById('r-type')?.value==='relay';
+  const note=document.getElementById('r-relay-note');
+  const pw=document.getElementById('r-points-wrap');
+  if(note) note.style.display=isRelay?'block':'none';
+  if(pw)   pw.style.display=isRelay?'none':'block';
+}
+function renderManualPage(){
+  const swSel=document.getElementById('r-swimmer');
+  if(swSel){
+    const cur=swSel.value;
+    swSel.innerHTML='<option value="">— избери плувец —</option>'+
+      Object.values(athletes).sort((a,b)=>a.name.localeCompare(b.name))
+        .map(a=>`<option value="${a.swrid}">${a.name} (${a.year})</option>`).join('');
+    swSel.value=cur;
+  }
+  const mSel=document.getElementById('r-meet');
+  if(mSel){
+    const cur=mSel.value;
+    mSel.innerHTML='<option value="">— избери състезание —</option>'+
+      [...meets].sort((a,b)=>b.date.localeCompare(a.date))
+        .map(m=>`<option value="${m.id}">${m.name} (${m.date})</option>`).join('');
+    mSel.value=cur;
+  }
+  const ml=document.getElementById('m-meet-list');
+  if(ml){
+    const manualMeets=meets.filter(m=>m.id.startsWith('manual_'));
+    if(!manualMeets.length){ml.innerHTML='<div style="font-size:12px;color:var(--text3)">Все още няма ръчно добавени</div>';}
+    else ml.innerHTML=manualMeets.map(m=>`
+      <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
+        <div class="meet-dot" style="background:${m.color}"></div>
+        <div><div style="font-weight:500">${m.name}</div><div style="color:var(--text3)">${m.date} · ${m.city} · ${m.course}</div></div>
+      </div>`).join('');
+  }
+  const rl=document.getElementById('manual-results-log');
+  if(rl){
+    if(!manualResultsCache.length){rl.innerHTML='<div style="font-size:12px;color:var(--text3)">Все още няма ръчно въведени резултати</div>';return;}
+    const sorted=[...manualResultsCache].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    rl.innerHTML=`<table><thead><tr><th>Плувец</th><th>Дисциплина</th><th>Време</th><th>Точки WA</th><th>Състезание</th><th>Дата</th><th></th></tr></thead>
+      <tbody>${sorted.map(r=>{
+        const a=athletes[r.swrid];
+        const col=a?avColor(a.name):'#888';
+        return `<tr>
+          <td><div style="display:flex;align-items:center;gap:7px">
+            <div class="av" style="width:24px;height:24px;font-size:9px;background:${col}22;color:${col}">${a?initials(a.name):'?'}</div>
+            <span style="font-weight:500">${a?a.name:r.swrid}</span>
+          </div></td>
+          <td>${r.event}</td>
+          <td class="mono">${r.time_str}</td>
+          <td>${r.points||'—'}</td>
+          <td style="color:var(--text2)">${r.meet_name||''}</td>
+          <td style="color:var(--text3)">${r.date||''}</td>
+          <td><button onclick="deleteManualResult(${r.id})"
+            style="font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid var(--border2);background:none;color:var(--text3);cursor:pointer">✕</button></td>
+        </tr>`;
+      }).join('')}</tbody></table>`;
+  }
+}
+
+// ── TOAST ────────────────────────────────────────────────────────────
+function showToast(msg,err){
+  const t=document.createElement('div');
+  t.style.cssText=`position:fixed;bottom:20px;right:20px;background:${err?'var(--red-l)':'var(--green-l)'};color:${err?'var(--red)':'var(--green)'};border:1px solid ${err?'var(--red)':'var(--green)'};border-radius:var(--rl);padding:10px 16px;font-size:13px;font-weight:500;z-index:9999;max-width:360px;transition:opacity .3s`;
+  t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>{t.style.opacity=0;setTimeout(()=>t.remove(),300);},3500);
+}
+
+// ── NAVIGATION ───────────────────────────────────────────────────────
+function renderAll(){ renderProgress(); renderSwimmers(); renderEvents(); }
+function go(name){
+  killCharts();
+  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on'));
+  document.getElementById('pg-'+name).classList.add('on');
+  document.querySelectorAll('.nb').forEach(b=>{if(b.getAttribute('onclick')?.includes(`'${name}'`))b.classList.add('on');});
+  if(name==='progress'){document.getElementById('progress-list').style.display='block';document.getElementById('progress-detail').style.display='none';renderProgress();}
+  if(name==='swimmers') renderSwimmers();
+  if(name==='events')   renderEvents();
+  if(name==='manual')   renderManualPage();
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────
+loadData();
+</script>
+</body>
+</html>
