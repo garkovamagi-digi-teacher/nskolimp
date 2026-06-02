@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>НСК ОЛИМП – Методика за развитие на плувците</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f4f8; color: #1a2233; min-height: 100vh; }
+
+  .header { background: linear-gradient(135deg, #0a3d6b 0%, #1565c0 100%); color: white; padding: 20px 24px 16px; }
+  .header h1 { font-size: 1.3rem; font-weight: 700; letter-spacing: 0.02em; }
+  .header p { font-size: 0.78rem; opacity: 0.8; margin-top: 4px; }
+
+  .age-bar { background: white; border-bottom: 2px solid #e2e8f0; padding: 12px 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .age-bar label { font-size: 0.8rem; font-weight: 600; color: #475569; white-space: nowrap; }
+  .age-btns { display: flex; gap: 4px; flex-wrap: wrap; }
+  .age-btn {
+    width: 36px; height: 36px; border: 2px solid #cbd5e1; border-radius: 8px;
+    background: white; color: #334155; font-size: 0.78rem; font-weight: 600;
+    cursor: pointer; transition: all 0.15s; display: flex; align-items: center; justify-content: center;
+  }
+  .age-btn:hover { border-color: #1565c0; color: #1565c0; }
+  .age-btn.active { background: #1565c0; border-color: #1565c0; color: white; }
+
+  .phase-badge { margin-left: auto; padding: 6px 14px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.04em; white-space: nowrap; }
+  .phase-1 { background: #dbeafe; color: #1e40af; }
+  .phase-2 { background: #dcfce7; color: #166534; }
+  .phase-3 { background: #fef9c3; color: #854d0e; }
+  .phase-4 { background: #fee2e2; color: #991b1b; }
+  .phase-5 { background: #f3e8ff; color: #6b21a8; }
+
+  .main { padding: 20px 24px; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+
+  .card { background: white; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); overflow: hidden; }
+  .card-header { padding: 10px 16px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; border-bottom: 1px solid #f1f5f9; }
+  .card-body { padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
+
+  .param { display: flex; flex-direction: column; gap: 2px; }
+  .param-label { font-size: 0.72rem; color: #64748b; font-weight: 500; }
+  .param-value { font-size: 0.95rem; font-weight: 700; color: #1e293b; }
+  .param-sub { font-size: 0.7rem; color: #94a3b8; }
+
+  .intensity-bar { margin-top: 4px; }
+  .zone-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .zone-label { font-size: 0.68rem; color: #64748b; width: 80px; flex-shrink: 0; }
+  .zone-track { flex: 1; background: #f1f5f9; border-radius: 4px; height: 10px; overflow: hidden; }
+  .zone-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
+  .zone-pct { font-size: 0.68rem; font-weight: 700; width: 30px; text-align: right; }
+
+  .chart-wrap { padding: 8px 16px 16px; height: 180px; }
+
+  .section-color-1 { background: #eff6ff; }
+  .section-color-1 .card-header { color: #1d4ed8; }
+  .section-color-2 { background: #f0fdf4; }
+  .section-color-2 .card-header { color: #15803d; }
+  .section-color-3 { background: #fefce8; }
+  .section-color-3 .card-header { color: #a16207; }
+  .section-color-4 { background: #fff7ed; }
+  .section-color-4 .card-header { color: #c2410c; }
+  .section-color-5 { background: #fdf4ff; }
+  .section-color-5 .card-header { color: #7e22ce; }
+  .section-color-6 { background: #f0fdfa; }
+  .section-color-6 .card-header { color: #0f766e; }
+
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.68rem; font-weight: 600; background: #f1f5f9; color: #475569; margin: 2px; }
+
+  .full-width { grid-column: 1 / -1; }
+  .edu-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+  .edu-table th { background: #f8fafc; font-weight: 700; color: #475569; padding: 8px 12px; text-align: left; border-bottom: 2px solid #e2e8f0; }
+  .edu-table td { padding: 8px 12px; border-bottom: 1px solid #f1f5f9; vertical-align: top; line-height: 1.5; }
+  .edu-table tr:hover td { background: #f8fafc; }
+  .edu-section { background: #f1f5f9; font-weight: 700; color: #334155; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🏊 НСК ОЛИМП — Методика за развитие на плувците</h1>
+  <p>Научно-базирана методика съобразена с развитието на мозъка и физиологичното съзряване</p>
+</div>
+
+<div class="age-bar">
+  <label>ИЗБЕРИ ВЪЗРАСТ:</label>
+  <div class="age-btns" id="ageBtns"></div>
+  <div class="phase-badge" id="phaseBadge"></div>
+</div>
+
+<div class="main" id="main"></div>
+
+<script>
+const AGES = ['6','7','8','9','10','11','12','13','14','15','16','17','18+'];
+const IDX  = {6:0,7:1,8:2,9:3,10:4,11:5,12:6,13:7,14:8,15:9,16:10,17:11,'18+':12};
+
+const PHASES = [
+  {label:'ФАЗА 1 – Основна техника (6–9г.)', cls:'phase-1', ages:['6','7','8','9']},
+  {label:'ФАЗА 2 – Аеробна основа (10–13г.)', cls:'phase-2', ages:['10','11','12','13']},
+  {label:'ФАЗА 3 – Трансформираща (14–15г.)', cls:'phase-3', ages:['14','15']},
+  {label:'ФАЗА 4 – Състезателно развитие (16–17г.)', cls:'phase-4', ages:['16','17']},
+  {label:'ФАЗА 5 – Висока интензивност (18+)', cls:'phase-5', ages:['18+']},
+];
+
+const DATA = {
+  sessionsPerWeek: ['2','3','4','4','5','5–6','6','6–7','7–8','8–9','9–10','10–11','10–12'],
+  volumeKm:        ['2–4','4–6','6–10','10–14','14–20','18–25','22–30','28–36','32–42','38–50','42–58','48–65','55–80'],
+  mainDistance:    ['1','1.5','2','3','4','5','6','6–7','7–8','8–9','8–10','9–11','10–14'],
+  z1: [100,100,95,85,80,75,70,68,65,60,55,48,42],
+  z2: [0,0,5,10,15,18,20,22,24,25,25,27,28],
+  z3: [0,0,0,3,4,5,7,7,8,10,12,15,18],
+  z4: [0,0,0,2,1,2,3,3,3,5,8,10,12],
+  trainingType: ['Техника','Техника','Техника + аеробна издърж.','Техника + аеробна','Техника + аеробен праг','Техника + праг','Техника + смесен режим','Техника + прагови интервали','Специф. техника + интервали','Специф. техника + скоростна издърж.','Поляриз. трениране + техника','Поляриз. + спринт мощност','Елитна специализация'],
+  videoAnalysis: ['–','–','–','–','–','–','–','1×/мес.','2×/мес.','2×/мес.','3×/мес.','5×/мес.','по всяка трен.'],
+  underwaterKicks: ['–','–','2 удара','3 удара','4 удара','5 удара','6 удара','7 удара','8 удара','8–10 удара','10–12 удара','10–15 удара','15 м. макс.'],
+  finalSprint: ['–','–','3 м.','5 м.','6 м.','7 м.','10 м.','12 м.','12 м.','15 м.','15 м.','20 м.','25 м.'],
+  strengthType: ['–','–','–','Упр. с тяло','Упр. с тяло + ластик','Упр. с тяло + ластик','Упр. с тяло + ластик + леки тежести','Функц. сила + плиометрия','Функц. сила + плиометрия + щанга','Сила–издърж. + мощност','Хипертрофия + максим. сила','Хипертрофия + мощност + плиометрия','Специфична сила 2–4 трен./с.'],
+  strengthSessions: ['–','–','–','1','1','1–2','2','2','2–3','2–3','3','3–4','3–4'],
+  aerobicOutside: ['–','15','2×15','2×15','2×25','2×30','3×30','3×30','2×40','3×40','3×45','4×45','4×60+'],
+  otherSports: ['–','2','2','2','2','2','1–2','1','1','1','1','0–1','0–1'],
+  brainDev: ['Ранно детство – Амигдала доминира','Емоц. учене – Подражание','Нараст. внимание – Правила/структура','Растяща PFC – Логика стартира','Абстрактно мислене','Стратег. мислене начало','Рефлексия начало','Бурен пубертет – Допамин↑ Риск↑','PFC развива хипотези','PFC ~70% зряла','PFC ~85% зряла','PFC ~95% зряла','PFC ~99% зряла'],
+  mental: ['Игра и удоволствие, позитивна обратна връзка','Базово фокусиране вниманието','Базово фокусиране','Визуализация на движения','Визуализация + дишане','Управление на стрес','Предсъст. рутини','Самоанализ + рутини','Цели','Управление на натиск + страх','Периодизация на психол. натоварване','Спортна идентичност + кариера','Пълна спортна психология'],
+  psychEval: ['–','–','–','1×/год.','1×/год.','1×/год.','2×/год.','2×/год.','2×/год.','2×/год.','3×/год.','3×/год.','4×/год.'],
+  sleep: ['10–11','10–11','9–11','9–10','9–10','9–10','8–10','8–10','8–10','8–9','8–9','8–9','8–9'],
+  physTests: ['–','–','1×/год. базови','2×/год. базови','2×/год. базови + сила','2×/год.','3×/год.','3×/год. + лактат тест','3×/год. + VO₂','4×/год. + лактат','4×/год. + лактат + сила','4×/год.','6×/год. пълен профил'],
+  nutrition: ['Хидратация + хранене','Хидратация + хранене','Хидратация + хранене','Хидратация + хранене','Въглехидрати преди трен.','Протеин и мускули','Хранене преди/след сезон','Хранене преди/след сезон','Въглехидрати зареждане','Калориен баланс','Добавки: безопасност','Периодизация на храненето','Спорт. диет. със специалист'],
+  startBlock: ['Основна техника','Основна техника','Старт + влизане 1×/трен.','Старт + влизане 2×/трен.','2×/трен.','2×/трен.','3×/трен.','Track start реакция','Оптимизация','Специф. тактика','Пълна оптимизация','Реакция + мощност','Реакция 0.6–0.7 сек. макс. оптим.'],
+  turns: ['Без дишане','Без дишане','Без дишане – открит обрат','Без дишане','Други обръщания','Други обръщания','Други обръщания','Други обръщания','Оптимизация','Скоростно салто','Пълна оптимизация','Тактическо обръщане','All'],
+  tactics: ['–','–','–','–','Темпо разпределение','Темпо контрол','Негативен сплит','Разпознаване на ритъм','Разпознаване на ритъм','All','Тактика 100м–400м','Пълна тактика','Сложна тактика 200м–1500м'],
+  periodization: ['1 сезон без пик','1 сезон без пик','1 сезон – 1 пик','1 сезон 1–2 пика','1 сезон 2 пика','1 сезон 2 пика','1 сезон 2 пика','2 макроцикъла 14–16','2 макроцикъла','2–3 макроц.','Поляризиран или блоков','Поляризиран или блоков','Олимп. цикъл или 2 макроц.'],
+  taper: ['–','–','3–5 дни','1 седм.','1 седм.','1–2 седм.','2 седм.','2 седм.','2–3 седм.','2–3 седм.','2–3 седм.','3 седм.','3–4 седм.'],
+  specialization: ['Всички стилове равно','Всички стилове','Всички стилове','Всички стилове','Всички + 1 акцент','1–2 предпочитани','1–2 стила','1–2 стила + специф.','1 осн. стил + 1 вспом.','Специализация','Пълна специализ.','Пълна специализ.','Специализ. + IM евент.'],
+  distances: ['25–50 м.','25–50 м.','50–100 м.','50–200 м.','100–400 м.','100–400 м.','100–800 м.','100–800 м.','100–1500 м.','100–1500 м.','50–1500 м.','50–1500 м.','50–1500 м.'],
+  compLevel: ['Вътрешни спринтове','Вътрешни','Вътрешни + клубни','Календар БФПС','Календар БФПС','Регионални първенства','Държавни първенства','Държавни + Балкански','Балкански + Европ.','Европейски + Свет.','Евр./Свет. (ако норми)','Свет./Олимп. класификации','Олимпийски цикъл'],
+  startsPerYear: ['5–10','10–15','10–20','15–25','20–30','25–35','30–40','30–45','35–50','40–55','40–60','45–65','50–80'],
+};
+
+const EDU_DATA = [
+  {section:'ХРАНЕНЕ', topic:'Хидратация', subtopic:'Защо пием вода', age:'6+', content:'Тялото е 60–70% вода. Дехидратацията с 2% намалява представянето с ~20%. Минимум 1.5–2 л./ден + 0.5 л. за всеки час тренировка.'},
+  {section:'ХРАНЕНЕ', topic:'Въглехидрати', subtopic:'Гориво за тренировка', age:'8+', content:'Основното гориво при плуване. Прости (бърз): банан, ориз, хляб преди/след тренировка. Препоръка: 3–8 г/кг тегло/ден.'},
+  {section:'ХРАНЕНЕ', topic:'Протеин', subtopic:'Строеж на мускулите', age:'9+', content:'~1.2–1.7 г/кг тегло/ден. Яж протеин в рамките на 30–45 мин след тренировка. Добри източници: яйца, пилешко, риба, гръцко кисело мляко.'},
+  {section:'ХРАНЕНЕ', topic:'Мазнини', subtopic:'Здраве и хормони', age:'10+', content:'25–35% от калориите. Фокус върху ненаситени мазнини: авокадо, ядки, риба. Избягвай трансмазнини.'},
+  {section:'ХРАНЕНЕ', topic:'Микронутриенти', subtopic:'Желязо и Витамин D', age:'11+', content:'Желязо: критично за пренос на кислород. Витамин D: кости + имунитет. Редовни кръвни изследвания при юноши.'},
+  {section:'ХРАНЕНЕ', topic:'Спортни добавки', subtopic:'Безопасност', age:'16+', content:'Само след консултация с лекар/диетолог. Креатин, кофеин: само при зрели спортисти. Избягвай непроверени продукти.'},
+  {section:'ПСИХОЛОГИЯ', topic:'Мотивация', subtopic:'Вътрешна vs Външна', age:'10+', content:'Вътрешна мотивация = дългосрочен успех. Избягвай прекомерен натиск за резултати при деца. Фокус върху процеса, не само медала.'},
+  {section:'ПСИХОЛОГИЯ', topic:'Управление на стрес', subtopic:'Техники', age:'12+', content:'Дишане 4-7-8. Прогресивна мускулна релаксация. Визуализация на успешното изпълнение. Предсъстезателни рутини.'},
+  {section:'ПСИХОЛОГИЯ', topic:'Burnout', subtopic:'Разпознаване и превенция', age:'13+', content:'Признаци: липса на мотивация, хронична умора, влошено представяне. Превенция: периодизация на психологическото натоварване, почивни периоди.'},
+  {section:'ФИЗИОЛОГИЯ', topic:'Лактатни прагове', subtopic:'Зони на интензивност', age:'14+', content:'Зона 1 (<2 mmol/L): аеробна база. Зона 2 (2-4): аеробен праг. Зона 3 (4-6): VO₂max. Зона 4-5 (>6): анаеробна/спринт.'},
+  {section:'ФИЗИОЛОГИЯ', topic:'Периодизация', subtopic:'Макро и микроцикли', age:'14+', content:'Макроцикъл = цял сезон. Мезоцикъл = 3-6 седмици. Микроцикъл = 1 седмица. Taper = намаляване на обема преди състезание.'},
+  {section:'ФИЗИОЛОГИЯ', topic:'Възстановяване', subtopic:'Активно и пасивно', age:'12+', content:'Сън: критично важен (8-11 ч. според възрастта). Активно възстановяване: лесно плуване, разтягане. Ice bath само при атлети 16+.'},
+];
+
+let currentAge = '12';
+let chartInstance = null;
+
+function getIdx(age) {
+  const i = parseInt(age);
+  return isNaN(i) ? 12 : i - 6;
+}
+
+function getPhase(age) {
+  return PHASES.find(p => p.ages.includes(age)) || PHASES[4];
+}
+
+function buildAgeBtns() {
+  const container = document.getElementById('ageBtns');
+  AGES.forEach(age => {
+    const btn = document.createElement('button');
+    btn.className = 'age-btn' + (age === currentAge ? ' active' : '');
+    btn.textContent = age;
+    btn.onclick = () => selectAge(age);
+    container.appendChild(btn);
+  });
+}
+
+function selectAge(age) {
+  currentAge = age;
+  document.querySelectorAll('.age-btn').forEach(b => {
+    b.classList.toggle('active', b.textContent === age);
+  });
+  const phase = getPhase(age);
+  const badge = document.getElementById('phaseBadge');
+  badge.textContent = phase.label;
+  badge.className = 'phase-badge ' + phase.cls;
+  renderMain(age);
+}
+
+function d(key, age) {
+  const i = getIdx(age);
+  return DATA[key][i] ?? '–';
+}
+
+function zoneColor(z) {
+  return ['#3b82f6','#22c55e','#f59e0b','#ef4444'][z];
+}
+
+function renderMain(age) {
+  const i = getIdx(age);
+  const main = document.getElementById('main');
+  if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+  main.innerHTML = '';
+
+  // Card builder
+  function card(title, colorClass, ...rows) {
+    const c = document.createElement('div');
+    c.className = `card ${colorClass}`;
+    c.innerHTML = `<div class="card-header">${title}</div><div class="card-body">${rows.map(r =>
+      `<div class="param"><span class="param-label">${r.label}</span><span class="param-value">${r.value}</span>${r.sub ? `<span class="param-sub">${r.sub}</span>` : ''}</div>`
+    ).join('')}</div>`;
+    return c;
+  }
+
+  // 1. General params
+  main.appendChild(card('🏊 Общи параметри', 'section-color-1',
+    {label:'Тренировки / седмица', value: d('sessionsPerWeek', age), sub:'басейн'},
+    {label:'Обем / седмица', value: d('volumeKm', age), sub:'км. в басейна'},
+    {label:'Дистанция / тренировка', value: d('mainDistance', age), sub:'км.'},
+  ));
+
+  // 2. Intensity zones - card with bars
+  const zCard = document.createElement('div');
+  zCard.className = 'card section-color-2';
+  const z1=DATA.z1[i], z2=DATA.z2[i], z3=DATA.z3[i], z4=DATA.z4[i];
+  zCard.innerHTML = `
+    <div class="card-header">📊 Разпределение на интензивността</div>
+    <div class="card-body">
+      ${[
+        {label:'З1 – Аеробна база', val:z1, color:'#3b82f6'},
+        {label:'З2 – Аеробен праг', val:z2, color:'#22c55e'},
+        {label:'З3 – ~VO₂max', val:z3, color:'#f59e0b'},
+        {label:'З4-5 – Анаеробна', val:z4, color:'#ef4444'},
+      ].map(z => `
+        <div class="zone-row">
+          <span class="zone-label">${z.label}</span>
+          <div class="zone-track"><div class="zone-fill" style="width:${z.val}%;background:${z.color}"></div></div>
+          <span class="zone-pct" style="color:${z.color}">${z.val || '–'}${z.val ? '%' : ''}</span>
+        </div>`).join('')}
+    </div>`;
+  main.appendChild(zCard);
+
+  // 3. Technical
+  main.appendChild(card('⚙️ Техническа подготовка', 'section-color-3',
+    {label:'Тип тренировка', value: d('trainingType', age)},
+    {label:'Видео анализ', value: d('videoAnalysis', age)},
+    {label:'Подводна работа (удари)', value: d('underwaterKicks', age)},
+    {label:'Финален спринт', value: d('finalSprint', age)},
+  ));
+
+  // 4. Strength
+  main.appendChild(card('💪 Силова подготовка (суша)', 'section-color-4',
+    {label:'Тип силова работа', value: d('strengthType', age)},
+    {label:'Силови тренировки / седмица', value: d('strengthSessions', age)},
+    {label:'Аеробна работа извън басейна', value: d('aerobicOutside', age), sub:'мин./седм.'},
+    {label:'Друг спорт', value: d('otherSports', age), sub:'пъти/седм.'},
+  ));
+
+  // 5. Brain / Psychology
+  main.appendChild(card('🧠 Мозъчно развитие & Психология', 'section-color-5',
+    {label:'Степен на развитие', value: d('brainDev', age)},
+    {label:'Ментална подготовка', value: d('mental', age)},
+    {label:'Психологическа оценка', value: d('psychEval', age)},
+  ));
+
+  // 6. Recovery
+  main.appendChild(card('😴 Възстановяване & Здраве', 'section-color-6',
+    {label:'Препоръчителен сън', value: d('sleep', age), sub:'часа/нощ'},
+    {label:'Физически тестове', value: d('physTests', age)},
+    {label:'Хранителна грамотност', value: d('nutrition', age)},
+  ));
+
+  // 7. Technical/tactical
+  main.appendChild(card('🎯 Технико-тактическа работа', 'section-color-1',
+    {label:'Старт (блок)', value: d('startBlock', age)},
+    {label:'Обръщания', value: d('turns', age)},
+    {label:'Тактика на дистанцията', value: d('tactics', age)},
+  ));
+
+  // 8. Competition
+  main.appendChild(card('🏆 Участие в състезания', 'section-color-4',
+    {label:'Ниво на състезания', value: d('compLevel', age)},
+    {label:'Стартове / год.', value: d('startsPerYear', age)},
+    {label:'Периодизация', value: d('periodization', age)},
+    {label:'Taper преди с-ние', value: d('taper', age)},
+  ));
+
+  // 9. Specialization
+  main.appendChild(card('🌊 Специализация', 'section-color-2',
+    {label:'Специализация по стил', value: d('specialization', age)},
+    {label:'Целеви дистанции', value: d('distances', age)},
+  ));
+
+  // 10. Volume chart (full width)
+  const chartCard = document.createElement('div');
+  chartCard.className = 'card full-width';
+  chartCard.innerHTML = `<div class="card-header">📈 Прогресия на обема по всички възрасти</div><div class="chart-wrap"><canvas id="volumeChart"></canvas></div>`;
+  main.appendChild(chartCard);
+
+  requestAnimationFrame(() => {
+    const ctx = document.getElementById('volumeChart');
+    if (!ctx) return;
+    const maxVals = ['4','6','10','14','20','25','30','36','42','50','58','65','80'].map(Number);
+    const minVals = ['2','4','6','10','14','18','22','28','32','38','42','48','55'].map(Number);
+    chartInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: AGES,
+        datasets: [
+          {label:'Макс. обем (км/седм.)', data: maxVals, borderColor:'#1565c0', backgroundColor:'rgba(21,101,192,0.1)', fill:'+1', tension:0.4, pointRadius:4, pointBackgroundColor: AGES.map(a => a === age ? '#1565c0' : 'white'), pointBorderColor:'#1565c0', pointBorderWidth:2},
+          {label:'Мин. обем (км/седм.)', data: minVals, borderColor:'#90caf9', backgroundColor:'rgba(144,202,249,0.15)', fill:false, tension:0.4, pointRadius:4, pointBackgroundColor: AGES.map(a => a === age ? '#90caf9' : 'white'), pointBorderColor:'#90caf9', pointBorderWidth:2},
+        ]
+      },
+      options: {
+        responsive:true, maintainAspectRatio:false,
+        plugins:{ legend:{ labels:{ font:{size:11}, boxWidth:12 } } },
+        scales:{
+          x:{ grid:{color:'#f1f5f9'}, ticks:{font:{size:11}} },
+          y:{ grid:{color:'#f1f5f9'}, ticks:{font:{size:11}}, title:{display:true, text:'км/седм.', font:{size:11}} }
+        },
+        elements:{ line:{ borderWidth:2 } }
+      }
+    });
+
+    // Highlight current age annotation
+    const ciIdx = AGES.indexOf(age);
+    if (ciIdx >= 0) {
+      chartInstance.data.datasets.forEach(ds => {
+        ds.pointBackgroundColor = AGES.map((a,ii) => ii === ciIdx ? ds.borderColor : 'white');
+        ds.pointRadius = AGES.map((_,ii) => ii === ciIdx ? 7 : 3);
+      });
+      chartInstance.update();
+    }
+  });
+
+  // 11. Educational content
+  const ageNum = age === '18+' ? 18 : parseInt(age);
+  const relevant = EDU_DATA.filter(r => parseInt(r.age) <= ageNum);
+  if (relevant.length) {
+    const eduCard = document.createElement('div');
+    eduCard.className = 'card full-width';
+    let sections = [...new Set(relevant.map(r => r.section))];
+    let html = `<div class="card-header">📚 Образователна програма (до ${age} г.)</div><div style="overflow-x:auto"><table class="edu-table"><thead><tr><th>Тема</th><th>Подтема</th><th>От</th><th>Съдържание</th></tr></thead><tbody>`;
+    sections.forEach(sec => {
+      html += `<tr><td colspan="4" class="edu-section">${sec}</td></tr>`;
+      relevant.filter(r=>r.section===sec).forEach(r => {
+        html += `<tr><td><strong>${r.topic}</strong></td><td>${r.subtopic}</td><td><span class="tag">${r.age}</span></td><td>${r.content}</td></tr>`;
+      });
+    });
+    html += '</tbody></table></div>';
+    eduCard.innerHTML = html;
+    main.appendChild(eduCard);
+  }
+}
+
+// Init
+buildAgeBtns();
+selectAge(currentAge);
+</script>
+</body>
+</html>
